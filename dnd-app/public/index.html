@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Grimório do Aventureiro · D&D 5E</title>
+  <link rel="stylesheet" href="style.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet"/>
+</head>
+<body>
+
+<div class="bg-runes" aria-hidden="true">
+  <span>᛫</span><span>᚛</span><span>ᚠ</span><span>ᚢ</span><span>ᚦ</span>
+  <span>ᚨ</span><span>ᚱ</span><span>ᚲ</span><span>ᚷ</span><span>ᚹ</span>
+  <span>ᚺ</span><span>ᚾ</span><span>ᛁ</span><span>ᛃ</span><span>ᛇ</span>
+  <span>ᛈ</span><span>ᛉ</span><span>ᛊ</span><span>ᛏ</span><span>ᛒ</span>
+</div>
+
+<!-- ═══════════════ WIZARD DE CRIAÇÃO ═══════════════ -->
+<div class="creation-overlay" id="creation-overlay" role="dialog" aria-modal="true" aria-labelledby="creation-title">
+  <div class="creation-screen">
+    <div class="creation-header">
+      <div class="creation-emblem">⚔️</div>
+      <h1 class="creation-title" id="creation-title">Forje seu Herói</h1>
+      <p class="creation-subtitle">D&amp;D 5ª Edição · SRD Completo</p>
+    </div>
+    <div class="wizard-progress" role="list">
+      <div class="wp-step active" data-step="1" role="listitem"><div class="wp-circle">1</div><span class="wp-label">Identidade</span></div>
+      <div class="wp-connector"></div>
+      <div class="wp-step" data-step="2" role="listitem"><div class="wp-circle">2</div><span class="wp-label">Raça</span></div>
+      <div class="wp-connector"></div>
+      <div class="wp-step" data-step="3" role="listitem"><div class="wp-circle">3</div><span class="wp-label">Classe</span></div>
+      <div class="wp-connector"></div>
+      <div class="wp-step" data-step="4" role="listitem"><div class="wp-circle">4</div><span class="wp-label">Atributos</span></div>
+    </div>
+    <div class="creation-body">
+
+      <!-- Etapa 1 -->
+      <div class="wizard-step-panel active" id="wstep-1">
+        <div class="wstep-title"><span class="wstep-num">01</span> Identidade</div>
+        <p class="wstep-hint">Nome, histórico e tendência do seu herói.</p>
+        <div class="creation-field">
+          <label for="cr-nome">Nome <span class="req">*</span></label>
+          <input type="text" id="cr-nome" placeholder="Ex: Aldric Ironfang…" maxlength="60" autocomplete="off"/>
+          <span class="field-error" id="err-nome">O nome é obrigatório.</span>
+        </div>
+        <div class="cr-two-col">
+          <div class="creation-field">
+            <label for="cr-background">Histórico</label>
+            <select id="cr-background">
+              <option value="">— escolha —</option>
+              <option value="acolito">Acólito</option>
+              <option value="artesao">Artesão da Guilda</option>
+              <option value="criminoso">Criminoso/Espião</option>
+              <option value="eremita">Eremita</option>
+              <option value="forasteiro">Forasteiro</option>
+              <option value="heroi_povo">Herói do Povo</option>
+              <option value="marinheiro">Marinheiro</option>
+              <option value="membro_cla">Membro de Clã</option>
+              <option value="nobre">Nobre</option>
+              <option value="sabio">Sábio</option>
+              <option value="soldado">Soldado</option>
+              <option value="ator">Ator/Artista</option>
+            </select>
+          </div>
+          <div class="creation-field">
+            <label for="cr-tendencia">Tendência</label>
+            <select id="cr-tendencia">
+              <option value="">— escolha —</option>
+              <option value="LB">Leal e Bom</option>
+              <option value="NB">Neutro e Bom</option>
+              <option value="CB">Caótico e Bom</option>
+              <option value="LN">Leal e Neutro</option>
+              <option value="N">Neutro</option>
+              <option value="CN">Caótico e Neutro</option>
+              <option value="LM">Leal e Mau</option>
+              <option value="NM">Neutro e Mau</option>
+              <option value="CM">Caótico e Mau</option>
+            </select>
+          </div>
+        </div>
+        <div class="background-preview-card" id="bg-preview" style="display:none">
+          <div class="bg-prev-name" id="bg-prev-name">—</div>
+          <div class="bg-prev-desc" id="bg-prev-desc">—</div>
+          <div class="bg-prev-skills" id="bg-prev-skills"></div>
+        </div>
+      </div>
+
+      <!-- Etapa 2 -->
+      <div class="wizard-step-panel" id="wstep-2">
+        <div class="wstep-title"><span class="wstep-num">02</span> Escolha sua Raça</div>
+        <p class="wstep-hint">Cada raça concede bônus únicos e habilidades especiais.</p>
+        <div class="cr-two-col">
+          <div class="creation-field">
+            <label for="cr-raca">Raça <span class="req">*</span></label>
+            <select id="cr-raca">
+              <option value="">— escolha —</option>
+              <option value="humano">Humano</option>
+              <option value="elfo">Elfo</option>
+              <option value="anao">Anão</option>
+              <option value="halfling">Halfling</option>
+              <option value="draconato">Draconato</option>
+              <option value="gnomo">Gnomo</option>
+              <option value="meio_elfo">Meio-Elfo</option>
+              <option value="meio_orc">Meio-Orc</option>
+              <option value="tiefling">Tiefling</option>
+            </select>
+            <span class="field-error" id="err-raca">Escolha uma raça.</span>
+          </div>
+          <div class="creation-field" id="subraca-field" style="display:none">
+            <label for="cr-subraca">Sub-raça</label>
+            <select id="cr-subraca" disabled><option value="">—</option></select>
+          </div>
+        </div>
+        <div class="race-info-card" id="race-info-card" style="display:none">
+          <div class="ric-header"><span class="ric-icon" id="ric-icon">🧝</span>
+            <div><div class="ric-name" id="ric-name">—</div><div class="ric-desc" id="ric-desc">—</div></div>
+          </div>
+          <div class="ric-bonuses" id="ric-bonuses"></div>
+          <div class="ric-traits" id="ric-traits"></div>
+        </div>
+      </div>
+
+      <!-- Etapa 3 -->
+      <div class="wizard-step-panel" id="wstep-3">
+        <div class="wstep-title"><span class="wstep-num">03</span> Escolha sua Classe</div>
+        <p class="wstep-hint">A classe define seu estilo de jogo, habilidades e dado de vida.</p>
+        <div class="creation-field">
+          <label for="cr-classe">Classe <span class="req">*</span></label>
+          <select id="cr-classe">
+            <option value="">— escolha —</option>
+            <option value="barbaro">Bárbaro</option>
+            <option value="bardo">Bardo</option>
+            <option value="clerigo">Clérigo</option>
+            <option value="druida">Druida</option>
+            <option value="guerreiro">Guerreiro</option>
+            <option value="monge">Monge</option>
+            <option value="paladino">Paladino</option>
+            <option value="patrulheiro">Patrulheiro</option>
+            <option value="ladino">Ladino</option>
+            <option value="feiticeiro">Feiticeiro</option>
+            <option value="bruxo">Bruxo</option>
+            <option value="mago">Mago</option>
+          </select>
+          <span class="field-error" id="err-classe">Escolha uma classe.</span>
+        </div>
+        <div class="class-info-card" id="class-info-card" style="display:none">
+          <div class="cic-header">
+            <span class="cic-dice" id="cic-dice">d10</span>
+            <div><div class="cic-name" id="cic-name">—</div><div class="cic-desc" id="cic-desc">—</div></div>
+          </div>
+          <div class="cic-grid">
+            <div class="cic-item"><div class="cic-label">Saving Throws</div><div class="cic-value" id="cic-st">—</div></div>
+            <div class="cic-item"><div class="cic-label">PV inicial</div><div class="cic-value" id="cic-hp">—</div></div>
+          </div>
+          <div class="cic-skills-label">Perícias sugeridas</div>
+          <div class="cic-skills" id="cic-skills"></div>
+          <div class="cic-features-label">Habilidades de classe</div>
+          <div class="cic-features" id="cic-features"></div>
+        </div>
+      </div>
+
+      <!-- Etapa 4 -->
+      <div class="wizard-step-panel" id="wstep-4">
+        <div class="wstep-title"><span class="wstep-num">04</span> Distribuir Atributos</div>
+        <p class="wstep-hint">Array padrão: 15, 14, 13, 12, 10, 8 — cada valor usado uma vez.</p>
+        <div class="std-array-chips" id="std-array-chips"></div>
+        <div class="attr-assign-grid" id="attr-assign-grid"></div>
+        <div class="attr-assign-warning" id="attr-assign-warning" style="display:none">⚠️ Distribua todos os 6 valores antes de continuar.</div>
+      </div>
+
+    </div>
+    <div class="creation-footer">
+      <button class="btn btn-wiz-back" id="btn-wiz-back" type="button" style="display:none">← Voltar</button>
+      <button class="btn btn-wiz-next" id="btn-wiz-next" type="button">Próximo →</button>
+      <button class="btn btn-create" id="btn-criar" type="button" style="display:none">⚔️ Criar Personagem</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ FICHA PRINCIPAL ═══════════════ -->
+<div class="app-wrapper" id="app-wrapper" style="display:none">
+
+  <header class="site-header">
+    <div class="header-emblem" aria-hidden="true">⚔</div>
+    <div class="header-text">
+      <h1 class="site-title">Grimório do Aventureiro</h1>
+      <p class="site-subtitle" id="header-char-name">Ficha · D&amp;D 5ª Edição</p>
+    </div>
+    <div class="header-emblem" aria-hidden="true">🛡</div>
+  </header>
+
+  <div class="toast" id="toast" role="status" aria-live="polite">
+    <span class="toast-icon">✦</span> Salvo automaticamente
+  </div>
+
+  <nav class="tabs-nav" role="tablist">
+    <button class="tab-btn active" role="tab" aria-selected="true" data-tab="combate"><span class="tab-icon">❤️</span><span class="tab-label">Combate</span></button>
+    <button class="tab-btn" role="tab" data-tab="atributos"><span class="tab-icon">🎲</span><span class="tab-label">Atributos</span></button>
+    <button class="tab-btn" role="tab" data-tab="pericias"><span class="tab-icon">🏅</span><span class="tab-label">Perícias</span></button>
+    <button class="tab-btn" role="tab" data-tab="arsenal"><span class="tab-icon">🎒</span><span class="tab-label">Arsenal</span></button>
+    <button class="tab-btn" role="tab" data-tab="ficha"><span class="tab-icon">📜</span><span class="tab-label">Ficha</span></button>
+  </nav>
+
+  <main class="tabs-content">
+
+    <!-- ═══ ABA 1: COMBATE ═══ -->
+    <section id="tab-combate" class="tab-panel active" role="tabpanel">
+      <div class="panel-inner">
+
+        <!-- Barra rápida -->
+        <div class="quick-stats-bar">
+          <div class="qs-item"><div class="qs-value" id="display-ca">10</div><div class="qs-label">CA</div></div>
+          <div class="qs-item"><div class="qs-value" id="display-init">+0</div><div class="qs-label">Iniciativa</div></div>
+          <div class="qs-item"><div class="qs-value" id="display-pp">10</div><div class="qs-label">Perc. Passiva</div></div>
+          <div class="qs-item"><div class="qs-value" id="display-pb">+2</div><div class="qs-label">Bon. Prof.</div></div>
+          <button class="inspiration-btn" id="btn-inspiration" type="button" aria-pressed="false">
+            <span class="insp-icon">✨</span><span class="insp-label">Inspiração</span>
+          </button>
+        </div>
+
+        <!-- HP -->
+        <div class="section-title"><span class="section-deco">✦</span> Pontos de Vida</div>
+        <div class="hp-system">
+          <div class="hp-bar-container">
+            <div class="hp-bar" id="hp-bar" style="width:100%"></div>
+            <div class="hp-bar-text" id="hp-bar-text">— / —</div>
+          </div>
+          <div class="hp-numbers">
+            <div class="hp-field"><label for="hp-atual">Atual</label><input type="number" id="hp-atual" min="0" placeholder="0"/></div>
+            <div class="hp-sep">/</div>
+            <div class="hp-field"><label for="hp-max">Máximo</label><input type="number" id="hp-max" min="1" placeholder="0"/></div>
+          </div>
+          <div class="hp-controls">
+            <div class="hp-ctrl-group">
+              <input type="number" id="hp-delta" class="hp-delta-input" min="0" placeholder="valor"/>
+              <button class="btn btn-hp-dmg" id="btn-hp-dmg" type="button">💔 Dano</button>
+              <button class="btn btn-hp-heal" id="btn-hp-heal" type="button">💚 Curar</button>
+            </div>
+          </div>
+          <div class="hp-temp-row">
+            <label for="hp-temp">PV Temporários</label>
+            <input type="number" id="hp-temp" min="0" placeholder="0" class="hp-temp-input"/>
+          </div>
+        </div>
+
+        <!-- Dados de Vida -->
+        <div class="section-title"><span class="section-deco">✦</span> Dados de Vida</div>
+        <div class="hit-dice-panel">
+          <div class="hd-type-badge" id="hd-type-badge">d8</div>
+          <div class="hd-tracker">
+            <div class="hd-field">
+              <label for="hd-total">Total</label>
+              <input type="number" id="hd-total" min="1" max="20" placeholder="1"/>
+            </div>
+            <div class="hd-field">
+              <label for="hd-usados">Usados</label>
+              <input type="number" id="hd-usados" min="0" placeholder="0"/>
+            </div>
+            <div class="hd-field">
+              <label>Restantes</label>
+              <div class="hd-remaining" id="hd-remaining">1</div>
+            </div>
+          </div>
+          <button class="btn btn-rest" id="btn-rest-short" type="button" title="Descanso curto — gaste dados de vida para recuperar PV">☀️ Desc. Curto</button>
+          <button class="btn btn-rest btn-rest-long" id="btn-rest-long" type="button" title="Descanso longo — recupera PV máximo e metade dos dados de vida">🌙 Desc. Longo</button>
+        </div>
+
+        <!-- Armadura -->
+        <div class="section-title"><span class="section-deco">✦</span> Armadura e CA</div>
+        <div class="armor-panel">
+          <div class="armor-field">
+            <label for="armor-type">Tipo de Armadura</label>
+            <select id="armor-type">
+              <option value="sem_armadura">Sem Armadura (10+DES)</option>
+              <optgroup label="Armadura Leve">
+                <option value="gibao_couro">Gibão de Couro (11+DES)</option>
+                <option value="couro">Couro (11+DES)</option>
+                <option value="couro_batido">Couro Batido (12+DES)</option>
+              </optgroup>
+              <optgroup label="Armadura Média">
+                <option value="pele">Pele (12+DES máx+2)</option>
+                <option value="cota_aneis">Cota de Anéis (13+DES máx+2)</option>
+                <option value="cota_escamas">Cota de Escamas (14+DES máx+2)</option>
+                <option value="peitoral">Peitoral (14+DES máx+2)</option>
+                <option value="meia_armadura">Meia Armadura (15+DES máx+2)</option>
+              </optgroup>
+              <optgroup label="Armadura Pesada">
+                <option value="cota_correntes">Cota de Correntes (16, FOR 13)</option>
+                <option value="armadura_laminas">Armadura de Lâminas (17, FOR 15)</option>
+                <option value="armadura_placas">Armadura de Placas (18, FOR 15)</option>
+              </optgroup>
+              <optgroup label="Especial">
+                <option value="barbaro">Def. Bárbaro (10+DES+CON)</option>
+                <option value="monge">Def. Monge (10+DES+SAB)</option>
+              </optgroup>
+            </select>
+          </div>
+          <div class="armor-shield-row">
+            <label class="shield-label">
+              <input type="checkbox" id="armor-shield"/> 🛡 Escudo (+2 CA)
+            </label>
+            <div class="ca-breakdown" id="ca-breakdown">CA: 10</div>
+          </div>
+        </div>
+
+        <!-- Stats de combate -->
+        <div class="section-title"><span class="section-deco">✦</span> Combate e Progresso</div>
+        <div class="combat-stats-grid">
+          <div class="cs-field"><label for="velocidade">Velocidade (pés)</label><input type="number" id="velocidade" min="0" max="120" placeholder="30"/></div>
+          <div class="cs-field"><label for="nivel-input">Nível</label><input type="number" id="nivel-input" min="1" max="20" placeholder="1"/></div>
+          <div class="cs-field"><label for="xp-input">XP</label><input type="number" id="xp-input" min="0" placeholder="0"/></div>
+          <div class="cs-field"><label>Próx. Nível</label><div class="xp-next" id="xp-next">300 XP</div></div>
+        </div>
+
+        <!-- Condições -->
+        <div class="section-title"><span class="section-deco">✦</span> Condições Ativas</div>
+        <div class="conditions-grid" id="conditions-grid"></div>
+
+        <!-- Exaustão -->
+        <div class="section-title"><span class="section-deco">✦</span> Exaustão</div>
+        <div class="exhaustion-panel">
+          <div class="exh-stepper">
+            <button class="exh-btn" id="exh-minus" type="button">−</button>
+            <div class="exh-display">
+              <div class="exh-level" id="exh-level">0</div>
+              <div class="exh-label">nível</div>
+            </div>
+            <button class="exh-btn" id="exh-plus" type="button">+</button>
+          </div>
+          <div class="exh-effect" id="exh-effect">Sem exaustão</div>
+        </div>
+
+        <!-- Resistências e Imunidades -->
+        <div class="section-title"><span class="section-deco">✦</span> Resistências e Imunidades</div>
+        <div class="resistencias-panel">
+          <div class="res-tags" id="res-tags"></div>
+          <input type="text" id="res-input" placeholder="Ex: Fogo, Veneno, Dano Psíquico… (Enter para adicionar)" class="res-input"/>
+        </div>
+
+        <!-- Resumo de armas -->
+        <div class="section-title"><span class="section-deco">✦</span> Armas — Ataque Rápido</div>
+        <div id="weapons-summary" class="weapons-summary">
+          <div class="no-weapons-hint">Nenhuma arma cadastrada. Adicione na aba 🎒 Arsenal.</div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ═══ ABA 2: ATRIBUTOS ═══ -->
+    <section id="tab-atributos" class="tab-panel" role="tabpanel">
+      <div class="panel-inner">
+        <div class="section-title"><span class="section-deco">✦</span> Atributos Primários</div>
+        <p class="section-hint">Modificadores e saving throws calculados automaticamente.</p>
+        <div class="attrs-grid">
+          <div class="attr-card" data-attr="forca"><div class="attr-header"><span class="attr-rune">ᚠ</span><span class="attr-name">Força</span></div>
+            <input type="number" id="forca" min="1" max="30" placeholder="10"/>
+            <div class="attr-mod" id="mod-forca">+0</div><div class="attr-label">modificador</div>
+            <div class="attr-st-divider"></div><div class="attr-st" id="st-forca">+0</div><div class="attr-label">saving throw</div>
+          </div>
+          <div class="attr-card" data-attr="destreza"><div class="attr-header"><span class="attr-rune">ᚢ</span><span class="attr-name">Destreza</span></div>
+            <input type="number" id="destreza" min="1" max="30" placeholder="10"/>
+            <div class="attr-mod" id="mod-destreza">+0</div><div class="attr-label">modificador</div>
+            <div class="attr-st-divider"></div><div class="attr-st" id="st-destreza">+0</div><div class="attr-label">saving throw</div>
+          </div>
+          <div class="attr-card" data-attr="constituicao"><div class="attr-header"><span class="attr-rune">ᚱ</span><span class="attr-name">Constituição</span></div>
+            <input type="number" id="constituicao" min="1" max="30" placeholder="10"/>
+            <div class="attr-mod" id="mod-constituicao">+0</div><div class="attr-label">modificador</div>
+            <div class="attr-st-divider"></div><div class="attr-st" id="st-constituicao">+0</div><div class="attr-label">saving throw</div>
+          </div>
+          <div class="attr-card" data-attr="inteligencia"><div class="attr-header"><span class="attr-rune">ᛁ</span><span class="attr-name">Inteligência</span></div>
+            <input type="number" id="inteligencia" min="1" max="30" placeholder="10"/>
+            <div class="attr-mod" id="mod-inteligencia">+0</div><div class="attr-label">modificador</div>
+            <div class="attr-st-divider"></div><div class="attr-st" id="st-inteligencia">+0</div><div class="attr-label">saving throw</div>
+          </div>
+          <div class="attr-card" data-attr="sabedoria"><div class="attr-header"><span class="attr-rune">ᛊ</span><span class="attr-name">Sabedoria</span></div>
+            <input type="number" id="sabedoria" min="1" max="30" placeholder="10"/>
+            <div class="attr-mod" id="mod-sabedoria">+0</div><div class="attr-label">modificador</div>
+            <div class="attr-st-divider"></div><div class="attr-st" id="st-sabedoria">+0</div><div class="attr-label">saving throw</div>
+          </div>
+          <div class="attr-card" data-attr="carisma"><div class="attr-header"><span class="attr-rune">ᛏ</span><span class="attr-name">Carisma</span></div>
+            <input type="number" id="carisma" min="1" max="30" placeholder="10"/>
+            <div class="attr-mod" id="mod-carisma">+0</div><div class="attr-label">modificador</div>
+            <div class="attr-st-divider"></div><div class="attr-st" id="st-carisma">+0</div><div class="attr-label">saving throw</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ ABA 3: PERÍCIAS ═══ -->
+    <section id="tab-pericias" class="tab-panel" role="tabpanel">
+      <div class="panel-inner">
+        <div class="section-title"><span class="section-deco">✦</span> Testes de Resistência</div>
+        <p class="section-hint">Proficiências de classe marcadas automaticamente.</p>
+        <div class="prof-bonus-bar">
+          <span class="prof-bonus-label">Bônus de Proficiência</span>
+          <span class="prof-bonus-value" id="st-prof-bonus-display">+2</span>
+          <span class="prof-bonus-hint">(Nível <span id="st-prof-nivel-display">1</span>)</span>
+        </div>
+        <div id="saving-throws-list" class="saving-throws-list"></div>
+        <div class="section-title" style="margin-top:1.5rem"><span class="section-deco">✦</span> Perícias</div>
+        <p class="section-hint">Marque as perícias com proficiência.</p>
+        <div id="prof-pericias-list" class="pericias-list"></div>
+      </div>
+    </section>
+
+    <!-- ═══ ABA 4: ARSENAL ═══ -->
+    <section id="tab-arsenal" class="tab-panel" role="tabpanel">
+      <div class="panel-inner">
+
+        <!-- Armas -->
+        <div class="section-title"><span class="section-deco">✦</span> Armas</div>
+        <div id="weapons-list" class="weapons-list"></div>
+        <button class="btn btn-add" id="btn-add-weapon" type="button"><span class="btn-icon">＋</span> Adicionar Arma</button>
+        <div id="empty-weapons" class="empty-state"><div class="empty-icon">⚔️</div><p>Nenhuma arma adicionada.</p></div>
+
+        <!-- Magias -->
+        <div class="section-title" style="margin-top:1.6rem"><span class="section-deco">✦</span> Magias</div>
+        <div class="magic-panel" id="magic-panel">
+          <div class="magic-header-row">
+            <div class="magic-attr-field">
+              <label for="magic-attr">Atributo Conjurador</label>
+              <select id="magic-attr">
+                <option value="">— Não conjura —</option>
+                <option value="inteligencia">Inteligência (Mago)</option>
+                <option value="sabedoria">Sabedoria (Clérigo/Druida)</option>
+                <option value="carisma">Carisma (Bardo/Feiticeiro/Bruxo/Paladino)</option>
+              </select>
+            </div>
+            <div class="magic-dc-group">
+              <div class="magic-stat"><div class="magic-stat-val" id="magic-dc">—</div><div class="magic-stat-label">CD Magia</div></div>
+              <div class="magic-stat"><div class="magic-stat-val" id="magic-atk">—</div><div class="magic-stat-label">Bônus Ataque</div></div>
+            </div>
+          </div>
+          <!-- Slots por nível -->
+          <div class="slots-grid" id="slots-grid"></div>
+          <!-- Lista de magias -->
+          <div class="section-subtitle">Magias Conhecidas / Preparadas</div>
+          <div id="spell-list" class="spell-list"></div>
+          <div class="spell-add-row">
+            <input type="text" id="spell-input" placeholder="Nome da magia (Enter para adicionar)…" maxlength="60"/>
+            <select id="spell-level" class="spell-level-sel">
+              <option value="0">Truque</option>
+              <option value="1">1°</option><option value="2">2°</option><option value="3">3°</option>
+              <option value="4">4°</option><option value="5">5°</option><option value="6">6°</option>
+              <option value="7">7°</option><option value="8">8°</option><option value="9">9°</option>
+            </select>
+            <button class="btn btn-add btn-add-spell" id="btn-add-spell" type="button"><span class="btn-icon">＋</span></button>
+          </div>
+        </div>
+
+        <!-- Inventário -->
+        <div class="section-title" style="margin-top:1.6rem"><span class="section-deco">✦</span> Inventário</div>
+        <div id="inventory-list" class="inventory-list"></div>
+        <button class="btn btn-add btn-add-inv" id="btn-add-item" type="button"><span class="btn-icon">＋</span> Adicionar Item</button>
+        <div id="empty-inventory" class="empty-state"><div class="empty-icon">🎒</div><p>Inventário vazio.</p></div>
+
+        <!-- Moedas -->
+        <div class="section-title" style="margin-top:1.6rem"><span class="section-deco">✦</span> Moedas</div>
+        <div class="coins-grid">
+          <div class="coin-field"><label for="coin-pp">PP</label><input type="number" id="coin-pp" min="0" placeholder="0"/></div>
+          <div class="coin-field"><label for="coin-po">PO</label><input type="number" id="coin-po" min="0" placeholder="0"/></div>
+          <div class="coin-field"><label for="coin-pe">PE</label><input type="number" id="coin-pe" min="0" placeholder="0"/></div>
+          <div class="coin-field"><label for="coin-pc">PC</label><input type="number" id="coin-pc" min="0" placeholder="0"/></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ═══ ABA 5: FICHA ═══ -->
+    <section id="tab-ficha" class="tab-panel" role="tabpanel">
+      <div class="panel-inner">
+
+        <!-- Identidade -->
+        <div class="section-title"><span class="section-deco">✦</span> Identidade</div>
+        <div class="field-group">
+          <div class="field"><label for="nome">Nome</label><input type="text" id="nome" placeholder="Nome do personagem" maxlength="60"/></div>
+          <div class="field-row">
+            <div class="field"><label for="raca">Raça</label><input type="text" id="raca" placeholder="Ex: Alto Elfo" maxlength="60"/></div>
+            <div class="field"><label for="classe">Classe</label><input type="text" id="classe" placeholder="Ex: Guerreiro" maxlength="40"/></div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="tendencia-sel">Tendência</label>
+              <select id="tendencia-sel">
+                <option value="">— escolha —</option>
+                <option value="LB">Leal e Bom</option>
+                <option value="NB">Neutro e Bom</option>
+                <option value="CB">Caótico e Bom</option>
+                <option value="LN">Leal e Neutro</option>
+                <option value="N">Neutro</option>
+                <option value="CN">Caótico e Neutro</option>
+                <option value="LM">Leal e Mau</option>
+                <option value="NM">Neutro e Mau</option>
+                <option value="CM">Caótico e Mau</option>
+              </select>
+            </div>
+            <div class="field"><label for="background-sel">Histórico</label>
+              <select id="background-sel">
+                <option value="">— nenhum —</option>
+                <option value="acolito">Acólito</option>
+                <option value="artesao">Artesão da Guilda</option>
+                <option value="criminoso">Criminoso/Espião</option>
+                <option value="eremita">Eremita</option>
+                <option value="forasteiro">Forasteiro</option>
+                <option value="heroi_povo">Herói do Povo</option>
+                <option value="marinheiro">Marinheiro</option>
+                <option value="membro_cla">Membro de Clã</option>
+                <option value="nobre">Nobre</option>
+                <option value="sabio">Sábio</option>
+                <option value="soldado">Soldado</option>
+                <option value="ator">Ator/Artista</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="background-card" id="background-card" style="display:none">
+          <div class="bg-card-name" id="bg-card-name">—</div>
+          <div class="bg-card-feature" id="bg-card-feature">—</div>
+          <div class="bg-card-equip" id="bg-card-equip"></div>
+          <div class="bg-card-skills" id="bg-card-skills"></div>
+        </div>
+
+        <!-- Aparência Física -->
+        <div class="section-title" style="margin-top:1.4rem"><span class="section-deco">✦</span> Aparência Física</div>
+        <div class="appearance-grid">
+          <div class="ap-field"><label for="ap-idade">Idade</label><input type="text" id="ap-idade" placeholder="Ex: 28 anos" maxlength="20"/></div>
+          <div class="ap-field"><label for="ap-altura">Altura</label><input type="text" id="ap-altura" placeholder="Ex: 1,80m" maxlength="20"/></div>
+          <div class="ap-field"><label for="ap-peso">Peso</label><input type="text" id="ap-peso" placeholder="Ex: 80kg" maxlength="20"/></div>
+          <div class="ap-field"><label for="ap-olhos">Olhos</label><input type="text" id="ap-olhos" placeholder="Ex: Azuis" maxlength="30"/></div>
+          <div class="ap-field"><label for="ap-cabelo">Cabelo</label><input type="text" id="ap-cabelo" placeholder="Ex: Castanho" maxlength="30"/></div>
+          <div class="ap-field"><label for="ap-pele">Pele</label><input type="text" id="ap-pele" placeholder="Ex: Morena" maxlength="30"/></div>
+        </div>
+
+        <!-- Idiomas -->
+        <div class="section-title" style="margin-top:1.4rem"><span class="section-deco">✦</span> Idiomas Conhecidos</div>
+        <div class="idiomas-panel">
+          <div class="idioma-tags" id="idioma-tags"></div>
+          <div class="idioma-input-row">
+            <input type="text" id="idioma-input" placeholder="Adicionar idioma (Enter)…" maxlength="40" class="idioma-input"/>
+            <button class="btn btn-add-small" id="btn-add-idioma" type="button">+</button>
+          </div>
+        </div>
+
+        <!-- Personalidade -->
+        <div class="section-title" style="margin-top:1.4rem"><span class="section-deco">✦</span> Personalidade e Ideais</div>
+        <div class="personality-grid">
+          <div class="pers-field">
+            <label for="tracos">Traços de Personalidade</label>
+            <textarea id="tracos" rows="3" placeholder="Como você age? O que te diferencia dos outros?…"></textarea>
+          </div>
+          <div class="pers-field">
+            <label for="ideais">Ideais</label>
+            <textarea id="ideais" rows="3" placeholder="O que guia suas ações? Seus princípios morais?…"></textarea>
+          </div>
+          <div class="pers-field">
+            <label for="vinculos">Vínculos</label>
+            <textarea id="vinculos" rows="3" placeholder="Conexões com pessoas, lugares ou eventos importantes…"></textarea>
+          </div>
+          <div class="pers-field">
+            <label for="defeitos">Defeitos</label>
+            <textarea id="defeitos" rows="3" placeholder="Fraquezas, vícios ou medos que podem ser explorados…"></textarea>
+          </div>
+        </div>
+
+        <!-- Traços raciais e de classe -->
+        <div class="section-title" style="margin-top:1.4rem"><span class="section-deco">✦</span> Características e Habilidades</div>
+        <div id="traits-container" class="traits-container">
+          <p class="traits-empty">Crie um personagem para ver as habilidades automaticamente.</p>
+        </div>
+
+        <!-- Ações de Combate (referência rápida) -->
+        <div class="section-title" style="margin-top:1.4rem"><span class="section-deco">✦</span> Ações em Combate</div>
+        <div class="combat-actions-grid">
+          <div class="ca-item"><div class="ca-name">⚔️ Ataque</div><div class="ca-desc">Ataque corpo-a-corpo ou à distância. Jogue d20 + mod + prof.</div></div>
+          <div class="ca-item"><div class="ca-name">🏃 Disparada</div><div class="ca-desc">Ganhe deslocamento extra igual ao seu deslocamento.</div></div>
+          <div class="ca-item"><div class="ca-name">🛡 Esquivar</div><div class="ca-desc">Ataques contra você têm desvantagem. Vantagem em saves DES.</div></div>
+          <div class="ca-item"><div class="ca-name">🤝 Ajudar</div><div class="ca-desc">Concede vantagem na próxima jogada de um aliado.</div></div>
+          <div class="ca-item"><div class="ca-name">💨 Desengajar</div><div class="ca-desc">Seu movimento não provoca ataques de oportunidade.</div></div>
+          <div class="ca-item"><div class="ca-name">👁 Esconder</div><div class="ca-desc">Teste de DES (Furtividade) para se esconder.</div></div>
+          <div class="ca-item"><div class="ca-name">⏳ Preparar</div><div class="ca-desc">Guarda uma ação para reagir a um gatilho específico.</div></div>
+          <div class="ca-item"><div class="ca-name">🔍 Procurar</div><div class="ca-desc">Foca atenção para encontrar algo (Percepção ou Investigação).</div></div>
+        </div>
+
+        <!-- Progressão -->
+        <div class="section-title" style="margin-top:1.4rem"><span class="section-deco">✦</span> Progressão de Nível</div>
+        <div class="xp-table" id="xp-table"></div>
+
+        <!-- Anotações -->
+        <div class="section-title" style="margin-top:1.4rem"><span class="section-deco">✦</span> Anotações</div>
+        <textarea id="observacoes" class="notes-area" placeholder="Anotações de campanha, NPCs, segredos…"></textarea>
+        <div class="char-counter"><span id="char-count">0</span> caracteres</div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <button class="btn btn-new-char" id="btn-new-char" type="button">✨ Novo Personagem</button>
+    <button class="btn btn-reset" id="btn-reset" type="button">🗑️ Limpar</button>
+    <p class="footer-note">Dados salvos localmente · D&amp;D 5E SRD</p>
+  </footer>
+
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal-reset" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal">
+    <div class="modal-icon" id="modal-icon">⚠️</div>
+    <h2 class="modal-title" id="modal-title">Limpar Ficha?</h2>
+    <p class="modal-text" id="modal-text">Todos os dados serão apagados.</p>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" id="btn-cancel-reset">Cancelar</button>
+      <button class="btn btn-confirm" id="btn-confirm-reset">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
