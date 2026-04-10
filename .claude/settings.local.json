@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node server/index.js)",
+      "Bash(kill %1)",
+      "Bash(netstat -ano)",
+      "Bash(taskkill /PID 3492 /F)",
+      "Bash(cmd.exe /c \"taskkill /PID 3492 /F\")",
+      "Bash(cmd.exe /c \"taskkill /PID 3492 /F 2>&1\")",
+      "Bash(powershell.exe -Command \"Stop-Process -Id 3492 -Force\")"
+    ]
+  }
+}

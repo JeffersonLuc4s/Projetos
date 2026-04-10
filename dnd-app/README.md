@@ -1,159 +1,266 @@
 # ⚔️ Grimório do Aventureiro — D&D 5E
-**Ficha digital com autenticação JWT e banco SQLite**
+### Deploy: Vercel (frontend + backend) + Neon (PostgreSQL)
 
 ---
 
-## ❗ Por que usamos `sql.js` em vez de `better-sqlite3`?
-
-O `better-sqlite3` precisa **compilar código nativo** (C++) no seu computador,
-o que exige Python + Visual Studio Build Tools no Windows — e ainda pode falhar
-com versões novas do Node.js (como a 24).
-
-O `sql.js` é um SQLite **100% em JavaScript/WebAssembly**:
-- ✅ Não precisa de Python, Visual Studio, ou qualquer compilador
-- ✅ Funciona em Windows, macOS e Linux sem configuração
-- ✅ É o mesmo SQLite real (mesma sintaxe SQL, mesmo arquivo `.db`)
-- ✅ Compatível com qualquer versão do Node.js ≥ 18
-
----
-
-## 📁 Estrutura do Projeto
+## 📁 Estrutura do projeto
 
 ```
 dnd-app/
-├── package.json               ← dependências (sql.js em vez de better-sqlite3)
-├── grimorio.db                ← criado automaticamente ao iniciar
+├── .env.example               ← modelo das variáveis de ambiente
+├── package.json               ← dependências: express, pg, bcrypt, jwt, cors
+├── vercel.json                ← config do Vercel (redireciona tudo para /api/server)
+├── api/
+│   └── server.js              ← entry point do Vercel (só exporta o Express)
 ├── server/
-│   ├── index.js               ← servidor Express
-│   ├── db.js                  ← banco SQLite via sql.js
+│   ├── index.js               ← app Express (roda local E no Vercel)
+│   ├── db.js                  ← pool PostgreSQL + helpers + migrations
 │   ├── auth.js                ← bcrypt + JWT
+│   ├── migrate.js             ← script para criar tabelas manualmente
 │   └── routes/
-│       ├── authRoutes.js      ← /api/auth/register|login|me
-│       └── characterRoutes.js ← /api/characters (CRUD completo)
+│       ├── authRoutes.js      ← POST /api/auth/register|login  GET /api/auth/me
+│       └── characterRoutes.js ← GET|POST|PUT|DELETE /api/characters
 └── public/
-    ├── index.html             ← SPA: login, lista, ficha
+    ├── index.html
     ├── style.css
-    ├── api.js                 ← fetch wrapper com JWT automático
-    └── script.js              ← lógica da ficha integrada
+    ├── api.js                 ← fetch com JWT automático
+    └── script.js              ← ficha + auth integrada
 ```
 
 ---
 
-## 🚀 Instalação e Execução
-
-### Passo 1 — Criar a estrutura de pastas
-
-```
-dnd-app/
-├── server/
-│   └── routes/
-└── public/
-```
-
-Copie cada arquivo para seu lugar conforme a estrutura acima.
+## 🚀 Passo a Passo Completo
 
 ---
 
-### Passo 2 — Instalar dependências
+### PASSO 1 — Criar o banco no Neon
 
-Abra o terminal na pasta `dnd-app` e execute:
+1. Acesse **https://neon.tech** e crie uma conta gratuita
+
+2. Clique em **"New Project"**
+   - Dê um nome (ex: `grimorio-dnd`)
+   - Escolha a região mais próxima (ex: `US East`)
+   - Clique em **Create Project**
+
+3. Na página do projeto, clique em **"Connection string"**
+
+4. Copie a string no formato:
+   ```
+   postgresql://jeff:senha123@ep-quiet-river-abc123.us-east-2.aws.neon.tech/grimorio?sslmode=require
+   ```
+   > Guarde essa string — você vai precisar dela nos próximos passos
+
+---
+
+### PASSO 2 — Configurar o projeto localmente
+
+1. Crie a pasta e copie todos os arquivos:
+   ```
+   dnd-app/
+   ├── api/server.js
+   ├── server/ (todos os arquivos)
+   ├── public/ (todos os arquivos)
+   ├── package.json
+   ├── vercel.json
+   └── .env.example
+   ```
+
+2. Copie o `.env.example` para `.env`:
+   ```bash
+   # Windows
+   copy .env.example .env
+
+   # macOS / Linux
+   cp .env.example .env
+   ```
+
+3. Abra o `.env` e preencha com suas informações:
+   ```env
+   DATABASE_URL=postgresql://jeff:senha@ep-xxxx.neon.tech/grimorio?sslmode=require
+   JWT_SECRET=cole-aqui-uma-frase-longa-e-aleatoria
+   PORT=3000
+   ```
+   
+   Para gerar um JWT_SECRET seguro, execute:
+   ```bash
+   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+   ```
+
+---
+
+### PASSO 3 — Instalar dependências e criar as tabelas
 
 ```bash
+cd dnd-app
+
+# Instalar pacotes (sem compilação nativa, funciona em qualquer SO)
 npm install
+
+# Criar todas as tabelas no Neon
+node server/migrate.js
 ```
 
-Deve instalar sem erros (sem compilação nativa).
+Saída esperada:
+```
+🔄 Conectando ao banco de dados…
+✅ Migrations aplicadas com sucesso.
+🎉 Banco pronto!
+```
 
 ---
 
-### Passo 3 — Iniciar o servidor
+### PASSO 4 — Testar localmente
 
 ```bash
 node server/index.js
 ```
 
-Saída esperada:
+Saída:
 ```
 ⚔️  Grimório do Aventureiro · D&D 5E
 🌐  http://localhost:3000
-📦  Banco de dados: grimorio.db
+📦  Banco: Neon PostgreSQL (DATABASE_URL)
 ✅  Servidor rodando na porta 3000
 ```
 
----
-
-### Passo 4 — Abrir no navegador
-
-**http://localhost:3000**
-
-A primeira tela será o Login/Cadastro.
+Abra **http://localhost:3000** e teste:
+- ✅ Criar conta
+- ✅ Fazer login
+- ✅ Criar personagem
+- ✅ Salvar e recarregar
 
 ---
 
-## ⚙️ Configuração opcional — .env
+### PASSO 5 — Subir para o GitHub
 
-Crie um arquivo `.env` na raiz do projeto:
+1. Crie um repositório no GitHub (pode ser privado)
+
+2. Crie um `.gitignore` na raiz:
+   ```
+   node_modules/
+   .env
+   grimorio.db
+   ```
+
+3. Suba o código:
+   ```bash
+   git init
+   git add .
+   git commit -m "Grimório do Aventureiro - primeira versão"
+   git branch -M main
+   git remote add origin https://github.com/SEU_USUARIO/dnd-app.git
+   git push -u origin main
+   ```
+
+---
+
+### PASSO 6 — Deploy no Vercel
+
+1. Acesse **https://vercel.com** e faça login (pode usar a conta GitHub)
+
+2. Clique em **"Add New Project"**
+
+3. Clique em **"Import"** no seu repositório `dnd-app`
+
+4. Na tela de configuração:
+   - **Framework Preset:** Other
+   - **Root Directory:** `./` (deixe em branco)
+   - **Build Command:** deixe em branco
+   - **Output Directory:** deixe em branco
+
+5. Abra a seção **"Environment Variables"** e adicione:
+
+   | Nome | Valor |
+   |------|-------|
+   | `DATABASE_URL` | `postgresql://...neon.tech/grimorio?sslmode=require` |
+   | `JWT_SECRET` | sua frase secreta gerada no Passo 2 |
+   | `NODE_ENV` | `production` |
+
+6. Clique em **"Deploy"**
+
+7. Aguarde ~1 minuto. A Vercel vai mostrar uma URL como:
+   ```
+   https://dnd-app-seu-nome.vercel.app
+   ```
+
+8. Acesse a URL e teste tudo! 🎉
+
+---
+
+### PASSO 7 — Testar a URL de produção
+
+Abra no navegador:
+```
+https://dnd-app-seu-nome.vercel.app
+```
+
+Teste:
+- Criar conta com um username novo
+- Criar um personagem
+- Fechar o navegador, abrir de novo → personagem ainda está lá ✅
+
+---
+
+## 🔧 Como funciona a arquitetura
 
 ```
-PORT=3000
-JWT_SECRET=troque-por-uma-frase-longa-e-secreta-aqui!
-NODE_ENV=production
-```
-
-Para carregar o `.env`:
-
-```bash
-npm install dotenv
-```
-
-Adicione no início de `server/index.js`:
-```js
-require('dotenv').config();
+Navegador
+    │
+    ▼
+Vercel (edge)
+    │
+    ├── /          → public/index.html  (frontend estático)
+    ├── /style.css → public/style.css
+    ├── /api.js    → public/api.js
+    ├── /script.js → public/script.js
+    │
+    └── /api/*     → api/server.js → Express
+                         │
+                         ├── /api/auth/register
+                         ├── /api/auth/login
+                         ├── /api/auth/me
+                         └── /api/characters (CRUD)
+                                  │
+                                  ▼
+                             Neon PostgreSQL
+                         (banco gerenciado na nuvem)
 ```
 
 ---
 
-## 🔐 Como funciona a autenticação
+## 🌐 Rotas da API
 
-```
-Cadastro:
-  1. Usuário envia username + senha
-  2. Senha é "hasheada" com bcrypt (12 rounds) → nunca salva em texto puro
-  3. Conta criada no banco
-  4. Servidor retorna um JWT válido por 7 dias
+### Autenticação
+| Método | Rota | Corpo | Resposta |
+|--------|------|-------|----------|
+| `POST` | `/api/auth/register` | `{ username, password }` | `{ token, username, userId }` |
+| `POST` | `/api/auth/login` | `{ username, password }` | `{ token, username, userId }` |
+| `GET`  | `/api/auth/me` | — *(requer token)* | `{ id, username, created_at }` |
 
-Login:
-  1. Usuário envia username + senha
-  2. Servidor busca o hash no banco e compara com bcrypt.compare()
-  3. Se correto → gera JWT e retorna ao frontend
-  4. Frontend salva o token no localStorage
-
-Requisições autenticadas:
-  1. Frontend envia: Authorization: Bearer <token>
-  2. Servidor verifica o JWT em cada rota protegida
-  3. Se expirado ou inválido → 401 → logout automático no frontend
-```
+### Personagens *(todas requerem `Authorization: Bearer TOKEN`)*
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| `GET` | `/api/characters` | Lista personagens do usuário logado |
+| `GET` | `/api/characters/:id` | Carrega personagem completo |
+| `POST` | `/api/characters` | Cria novo personagem |
+| `PUT` | `/api/characters/:id` | Salva alterações |
+| `DELETE` | `/api/characters/:id` | Deleta personagem |
 
 ---
 
-## 🗄️ Banco de Dados
-
-O banco é um arquivo `grimorio.db` criado automaticamente na primeira execução.
-Usando `sql.js`, ele carrega o arquivo em memória e persiste ao disco após cada escrita.
-
-### Tabelas
+## 🗄️ Tabelas criadas no Neon
 
 | Tabela | Conteúdo |
 |--------|----------|
-| `users` | Usuários (id, username, hash de senha) |
+| `users` | Usuários (id, username, hash da senha) |
 | `characters` | Dados principais do personagem |
-| `attributes` | Os 6 atributos + bases |
+| `attributes` | Os 6 atributos + bases raciais |
 | `saving_throw_profs` | Proficiências em saving throws |
 | `skill_profs` | Proficiências em perícias |
 | `inventory` | Itens do inventário |
-| `weapons` | Armas com cálculo de ataque |
+| `weapons` | Armas com dano e atributo |
 | `spells` | Magias conhecidas/preparadas |
-| `conditions` | Condições ativas (agarrado, cego, etc.) |
+| `conditions` | Condições ativas (agarrado, cego…) |
 | `resistances` | Resistências e imunidades |
 | `magic_config` | Atributo conjurador + slots usados |
 | `personality` | Traços, ideais, vínculos, defeitos |
@@ -161,77 +268,67 @@ Usando `sql.js`, ele carrega o arquivo em memória e persiste ao disco após cad
 | `languages` | Idiomas conhecidos |
 | `coins` | Moedas (PP, PO, PE, PC) |
 
-### Ver o banco
-
-Você pode abrir o arquivo `grimorio.db` com qualquer visualizador de SQLite:
-- **DB Browser for SQLite** (gratuito): https://sqlitebrowser.org
-- Extensão **SQLite Viewer** no VS Code
-
 ---
 
-## 🌐 Rotas da API
+## 🔒 Segurança
 
-### Auth
-| Método | Rota | Corpo | Descrição |
-|--------|------|-------|-----------|
-| POST | `/api/auth/register` | `{ username, password }` | Cadastrar |
-| POST | `/api/auth/login` | `{ username, password }` | Login |
-| GET  | `/api/auth/me` | — | Dados do usuário (requer token) |
-
-### Personagens (todas requerem `Authorization: Bearer TOKEN`)
-| Método | Rota | Descrição |
-|--------|------|-----------|
-| GET    | `/api/characters` | Listar personagens do usuário |
-| GET    | `/api/characters/:id` | Carregar um personagem completo |
-| POST   | `/api/characters` | Criar novo personagem |
-| PUT    | `/api/characters/:id` | Atualizar personagem |
-| DELETE | `/api/characters/:id` | Deletar personagem |
-
----
-
-## 🚀 Colocar em produção
-
-### Com PM2 (recomendado)
-```bash
-npm install -g pm2
-pm2 start server/index.js --name grimorio
-pm2 save && pm2 startup
-```
-
-### Com Nginx como proxy
-```nginx
-location / {
-    proxy_pass http://localhost:3000;
-    proxy_set_header Host $host;
-}
-```
-
-### Backup
-```bash
-# O banco é um arquivo único — basta copiar
-copy grimorio.db grimorio-backup.db   # Windows
-cp   grimorio.db grimorio-backup.db   # Linux/macOS
-```
+- ✅ Senhas com **bcrypt** (12 rounds) — nunca salvas em texto puro
+- ✅ **JWT** com expiração de 7 dias
+- ✅ Cada usuário acessa **apenas seus próprios** personagens
+- ✅ Validação de input no backend
+- ✅ Resposta idêntica para usuário inexistente e senha errada
+- ✅ **SSL obrigatório** na conexão com o Neon
+- ✅ Neon é acessado diretamente — nenhuma senha fica exposta no frontend
 
 ---
 
 ## ❓ Problemas comuns
 
-| Erro | Solução |
-|------|---------|
-| `Cannot find module 'sql.js'` | Execute `npm install` na pasta `dnd-app` |
-| `EADDRINUSE port 3000` | Mude a porta: `PORT=3001 node server/index.js` |
-| Tela em branco / erros JS | Verifique o console do navegador (F12) |
-| Esqueceu a senha | Abra `grimorio.db` no DB Browser e delete o usuário |
+### `npm install` dá erro
+Certifique-se de estar na pasta `dnd-app` antes de rodar `npm install`.
+
+### `node server/migrate.js` dá erro de conexão
+Verifique se o `DATABASE_URL` no `.env` está correto.
+Teste a conexão com:
+```bash
+node -e "require('dotenv').config(); const {Pool}=require('pg'); const p=new Pool({connectionString:process.env.DATABASE_URL,ssl:{rejectUnauthorized:false}}); p.query('SELECT 1').then(()=>{console.log('✅ Conectado!');p.end()}).catch(e=>{console.error('❌',e.message);p.end()})"
+```
+
+### Vercel dá erro 500
+- Verifique se as **Environment Variables** foram adicionadas corretamente
+- Acesse o painel do Vercel → seu projeto → aba **"Functions"** → clique em uma função → veja o log de erro
+
+### Personagem não salva após fechar o navegador
+O token JWT pode ter expirado (7 dias). Faça login novamente.
+
+### Esqueceu a senha de um usuário
+Acesse o Neon SQL Editor e execute:
+```sql
+DELETE FROM users WHERE username = 'nome_do_usuario';
+```
 
 ---
 
-## 🔒 Segurança implementada
+## 🔄 Atualizando o código
 
-- ✅ Senhas com bcrypt (12 rounds) — nunca em texto puro
-- ✅ JWT com expiração de 7 dias
-- ✅ Cada usuário só acessa **seus próprios** personagens
-- ✅ Validação de input no backend
-- ✅ Resposta idêntica para usuário inexistente e senha errada (evita enumeração)
-- ✅ Foreign Keys com CASCADE para evitar dados órfãos
-- ✅ Limite de tamanho nas requisições (`2mb`)
+Toda vez que você fizer `git push`, o Vercel faz o **redeploy automático** em ~30 segundos.
+
+```bash
+git add .
+git commit -m "minha atualização"
+git push
+```
+
+---
+
+## 💡 Diferença SQLite → PostgreSQL (para referência)
+
+| SQLite | PostgreSQL |
+|--------|-----------|
+| `?` | `$1, $2, $3...` |
+| `INTEGER AUTOINCREMENT` | `SERIAL` |
+| `datetime('now')` | `NOW()` |
+| `INTEGER` (0/1 para bool) | `BOOLEAN` (true/false) |
+| `ON CONFLICT ... DO UPDATE` | igual ✅ |
+| Arquivo local `.db` | Servidor gerenciado Neon |
+| Síncrono | Assíncrono (async/await) |

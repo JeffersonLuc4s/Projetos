@@ -2,38 +2,44 @@
 'use strict';
 
 const express = require('express');
-const { getDb } = require('../db');
+const { pool, queryOne, query } = require('../db');
 const { requireAuth } = require('../auth');
 
 const router = express.Router();
-router.use(requireAuth);  // all character routes require a valid JWT
+router.use(requireAuth);
 
 /* ═══════════════════════════════════════════════════════════
-   HELPERS — load full character object from all sub-tables
+   HELPER — load a full character from all sub-tables
 ═══════════════════════════════════════════════════════════ */
-function loadFullCharacter(db, charId, userId) {
-  // Verify ownership first
-  const ch = db.prepare(
-    'SELECT * FROM characters WHERE id = ? AND user_id = ?'
-  ).get(charId, userId);
+async function loadFullCharacter(charId, userId) {
+  // Verify ownership
+  const ch = await queryOne(
+    'SELECT * FROM characters WHERE id = $1 AND user_id = $2',
+    [charId, userId]
+  );
   if (!ch) return null;
 
-  const attrs   = db.prepare('SELECT * FROM attributes   WHERE character_id = ?').get(charId) || {};
-  const pers    = db.prepare('SELECT * FROM personality  WHERE character_id = ?').get(charId) || {};
-  const appear  = db.prepare('SELECT * FROM appearance   WHERE character_id = ?').get(charId) || {};
-  const magic   = db.prepare('SELECT * FROM magic_config WHERE character_id = ?').get(charId) || {};
-  const coins   = db.prepare('SELECT * FROM coins        WHERE character_id = ?').get(charId) || {};
+  // Parallel fetches for all related data
+  const [
+    attrs, pers, appear, magic, coins,
+    stProfs, skillP, inventory, weapons,
+    spells, conditions, resists, langs,
+  ] = await Promise.all([
+    queryOne('SELECT * FROM attributes   WHERE character_id = $1', [charId]),
+    queryOne('SELECT * FROM personality  WHERE character_id = $1', [charId]),
+    queryOne('SELECT * FROM appearance   WHERE character_id = $1', [charId]),
+    queryOne('SELECT * FROM magic_config WHERE character_id = $1', [charId]),
+    queryOne('SELECT * FROM coins        WHERE character_id = $1', [charId]),
+    query('SELECT atributo    FROM saving_throw_profs WHERE character_id = $1', [charId]),
+    query('SELECT skill_id    FROM skill_profs        WHERE character_id = $1', [charId]),
+    query('SELECT *           FROM inventory          WHERE character_id = $1', [charId]),
+    query('SELECT *           FROM weapons            WHERE character_id = $1', [charId]),
+    query('SELECT *           FROM spells             WHERE character_id = $1', [charId]),
+    query('SELECT condition_id FROM conditions        WHERE character_id = $1', [charId]),
+    query('SELECT descricao   FROM resistances        WHERE character_id = $1', [charId]),
+    query('SELECT idioma      FROM languages          WHERE character_id = $1', [charId]),
+  ]);
 
-  const stProfs    = db.prepare('SELECT atributo    FROM saving_throw_profs WHERE character_id = ?').all(charId);
-  const skillP     = db.prepare('SELECT skill_id    FROM skill_profs        WHERE character_id = ?').all(charId);
-  const inventory  = db.prepare('SELECT *           FROM inventory          WHERE character_id = ?').all(charId);
-  const weapons    = db.prepare('SELECT *           FROM weapons            WHERE character_id = ?').all(charId);
-  const spells     = db.prepare('SELECT *           FROM spells             WHERE character_id = ?').all(charId);
-  const conditions = db.prepare('SELECT condition_id FROM conditions        WHERE character_id = ?').all(charId);
-  const resists    = db.prepare('SELECT descricao   FROM resistances        WHERE character_id = ?').all(charId);
-  const langs      = db.prepare('SELECT idioma      FROM languages          WHERE character_id = ?').all(charId);
-
-  // Rebuild the frontend appData shape
   const savingThrows = {};
   stProfs.forEach(r => { savingThrows[r.atributo] = true; });
 
@@ -44,7 +50,7 @@ function loadFullCharacter(db, charId, userId) {
   conditions.forEach(r => { condicoes[r.condition_id] = true; });
 
   const spellList = spells.map(s => ({
-    id: s.spell_key, nome: s.nome, nivel: s.nivel, preparada: !!s.preparada,
+    id: s.spell_key, nome: s.nome, nivel: s.nivel, preparada: s.preparada,
   }));
 
   return {
@@ -56,30 +62,29 @@ function loadFullCharacter(db, charId, userId) {
       tendencia: ch.tendencia,
     },
     atributos: {
-      forca:        String(attrs.forca        ?? 10),
-      destreza:     String(attrs.destreza     ?? 10),
-      constituicao: String(attrs.constituicao ?? 10),
-      inteligencia: String(attrs.inteligencia ?? 10),
-      sabedoria:    String(attrs.sabedoria     ?? 10),
-      carisma:      String(attrs.carisma       ?? 10),
+      forca:        String(attrs?.forca        ?? 10),
+      destreza:     String(attrs?.destreza     ?? 10),
+      constituicao: String(attrs?.constituicao ?? 10),
+      inteligencia: String(attrs?.inteligencia ?? 10),
+      sabedoria:    String(attrs?.sabedoria    ?? 10),
+      carisma:      String(attrs?.carisma      ?? 10),
     },
     atributosBase: {
-      forca:        String(attrs.forca_base        ?? 10),
-      destreza:     String(attrs.destreza_base     ?? 10),
-      constituicao: String(attrs.constituicao_base ?? 10),
-      inteligencia: String(attrs.inteligencia_base ?? 10),
-      sabedoria:    String(attrs.sabedoria_base     ?? 10),
-      carisma:      String(attrs.carisma_base       ?? 10),
+      forca:        String(attrs?.forca_base        ?? 10),
+      destreza:     String(attrs?.destreza_base     ?? 10),
+      constituicao: String(attrs?.constituicao_base ?? 10),
+      inteligencia: String(attrs?.inteligencia_base ?? 10),
+      sabedoria:    String(attrs?.sabedoria_base    ?? 10),
+      carisma:      String(attrs?.carisma_base      ?? 10),
     },
     vida:    { atual: ch.hp_atual, max: ch.hp_max, temp: ch.hp_temp },
     combate: {
-      nivel:     ch.nivel,     xp:        ch.xp,
-      velocidade:ch.velocidade, armadura: ch.armadura,
-      escudo: !!ch.escudo,
+      nivel: ch.nivel, xp: ch.xp, velocidade: ch.velocidade,
+      armadura: ch.armadura, escudo: ch.escudo,
     },
     hitDice:    { total: ch.hd_total, usados: ch.hd_usados },
     exaustao:   ch.exaustao,
-    inspiracao: !!ch.inspiracao,
+    inspiracao: ch.inspiracao,
     observacoes: ch.observacoes,
     proficiencias: { savingThrows },
     pericias,
@@ -87,35 +92,35 @@ function loadFullCharacter(db, charId, userId) {
     resistencias: resists.map(r => r.descricao),
     armas: weapons.map(w => ({
       id: w.weapon_key, nome: w.nome, dano: w.dano,
-      atributo: w.atributo, proficiente: !!w.proficiente, bonusExtra: w.bonus_extra,
+      atributo: w.atributo, proficiente: w.proficiente, bonusExtra: w.bonus_extra,
     })),
     inventario: inventory.map(i => ({
       id: i.item_key, nome: i.nome, quantidade: i.quantidade, descricao: i.descricao,
     })),
     magias: {
-      atributo: magic.atributo || '',
-      slotsUsados: JSON.parse(magic.slots_usados || '[]'),
+      atributo: magic?.atributo || '',
+      slotsUsados: JSON.parse(magic?.slots_usados || '[]'),
       lista: spellList,
     },
     personalidade: {
-      tracos:   pers.tracos   || '', ideais:   pers.ideais   || '',
-      vinculos: pers.vinculos || '', defeitos: pers.defeitos || '',
+      tracos:   pers?.tracos   || '', ideais:   pers?.ideais   || '',
+      vinculos: pers?.vinculos || '', defeitos: pers?.defeitos || '',
     },
     aparencia: {
-      idade:  appear.idade  || '', altura: appear.altura || '',
-      peso:   appear.peso   || '', olhos:  appear.olhos  || '',
-      cabelo: appear.cabelo || '', pele:   appear.pele   || '',
+      idade:  appear?.idade  || '', altura: appear?.altura || '',
+      peso:   appear?.peso   || '', olhos:  appear?.olhos  || '',
+      cabelo: appear?.cabelo || '', pele:   appear?.pele   || '',
     },
     idiomas: langs.map(l => l.idioma),
-    moedas:  { pp: coins.pp||0, po: coins.po||0, pe: coins.pe||0, pc: coins.pc||0 },
+    moedas: { pp: coins?.pp||0, po: coins?.po||0, pe: coins?.pe||0, pc: coins?.pc||0 },
     background: { id: ch.background_id },
   };
 }
 
 /* ═══════════════════════════════════════════════════════════
-   HELPERS — save full character (all sub-tables in transaction)
+   HELPER — save full character inside a single transaction
 ═══════════════════════════════════════════════════════════ */
-function saveFullCharacter(db, userId, data, existingId = null) {
+async function saveFullCharacter(userId, data, existingId = null) {
   const p  = data.personagem    || {};
   const a  = data.atributos     || {};
   const ab = data.atributosBase || {};
@@ -130,130 +135,175 @@ function saveFullCharacter(db, userId, data, existingId = null) {
   const sk = data.pericias      || {};
   const co = data.condicoes     || {};
 
-  const run = db.transaction(() => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
     let charId;
 
     if (existingId) {
-      db.prepare(`
+      // ── UPDATE ──────────────────────────────────────────────
+      await client.query(`
         UPDATE characters SET
-          nome=?,raca=?,classe=?,raca_id=?,subraca_id=?,classe_id=?,background_id=?,tendencia=?,
-          nivel=?,xp=?,velocidade=?,armadura=?,escudo=?,
-          hp_atual=?,hp_max=?,hp_temp=?,hd_total=?,hd_usados=?,
-          exaustao=?,inspiracao=?,observacoes=?,updated_at=datetime('now')
-        WHERE id=? AND user_id=?
-      `).run(
+          nome=$1, raca=$2, classe=$3, raca_id=$4, subraca_id=$5,
+          classe_id=$6, background_id=$7, tendencia=$8,
+          nivel=$9, xp=$10, velocidade=$11, armadura=$12, escudo=$13,
+          hp_atual=$14, hp_max=$15, hp_temp=$16,
+          hd_total=$17, hd_usados=$18, exaustao=$19, inspiracao=$20,
+          observacoes=$21, updated_at=NOW()
+        WHERE id=$22 AND user_id=$23
+      `, [
         p.nome||'', p.raca||'', p.classe||'', p.racaId||'', p.subracaId||'',
         p.classeId||'', p.backgroundId||'', p.tendencia||'',
         c.nivel||1, c.xp||0, c.velocidade||30,
-        c.armadura||'sem_armadura', c.escudo?1:0,
+        c.armadura||'sem_armadura', !!c.escudo,
         v.atual||0, v.max||0, v.temp||0,
         hd.total||1, hd.usados||0,
-        data.exaustao||0, data.inspiracao?1:0, data.observacoes||'',
-        existingId, userId
-      );
+        data.exaustao||0, !!data.inspiracao, data.observacoes||'',
+        existingId, userId,
+      ]);
       charId = existingId;
+
     } else {
-      const r = db.prepare(`
+      // ── INSERT ──────────────────────────────────────────────
+      const { rows } = await client.query(`
         INSERT INTO characters
-          (user_id,nome,raca,classe,raca_id,subraca_id,classe_id,background_id,tendencia,
-           nivel,xp,velocidade,armadura,escudo,hp_atual,hp_max,hp_temp,hd_total,hd_usados,
-           exaustao,inspiracao,observacoes)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-      `).run(
+          (user_id, nome, raca, classe, raca_id, subraca_id, classe_id, background_id,
+           tendencia, nivel, xp, velocidade, armadura, escudo,
+           hp_atual, hp_max, hp_temp, hd_total, hd_usados, exaustao, inspiracao, observacoes)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
+        RETURNING id
+      `, [
         userId, p.nome||'', p.raca||'', p.classe||'', p.racaId||'', p.subracaId||'',
         p.classeId||'', p.backgroundId||'', p.tendencia||'',
         c.nivel||1, c.xp||0, c.velocidade||30,
-        c.armadura||'sem_armadura', c.escudo?1:0,
+        c.armadura||'sem_armadura', !!c.escudo,
         v.atual||0, v.max||0, v.temp||0,
         hd.total||1, hd.usados||0,
-        data.exaustao||0, data.inspiracao?1:0, data.observacoes||''
-      );
-      charId = r.lastInsertRowid;
+        data.exaustao||0, !!data.inspiracao, data.observacoes||'',
+      ]);
+      charId = rows[0].id;
     }
 
-    // Attributes upsert
-    db.prepare(`
+    // ── Attributes upsert ───────────────────────────────────
+    await client.query(`
       INSERT INTO attributes
-        (character_id,forca,destreza,constituicao,inteligencia,sabedoria,carisma,
-         forca_base,destreza_base,constituicao_base,inteligencia_base,sabedoria_base,carisma_base)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
-      ON CONFLICT(character_id) DO UPDATE SET
-        forca=excluded.forca, destreza=excluded.destreza, constituicao=excluded.constituicao,
-        inteligencia=excluded.inteligencia, sabedoria=excluded.sabedoria, carisma=excluded.carisma,
-        forca_base=excluded.forca_base, destreza_base=excluded.destreza_base,
-        constituicao_base=excluded.constituicao_base, inteligencia_base=excluded.inteligencia_base,
-        sabedoria_base=excluded.sabedoria_base, carisma_base=excluded.carisma_base
-    `).run(charId,
-      parseInt(a.forca)||10,  parseInt(a.destreza)||10, parseInt(a.constituicao)||10,
+        (character_id, forca, destreza, constituicao, inteligencia, sabedoria, carisma,
+         forca_base, destreza_base, constituicao_base, inteligencia_base, sabedoria_base, carisma_base)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+      ON CONFLICT (character_id) DO UPDATE SET
+        forca=$2, destreza=$3, constituicao=$4, inteligencia=$5, sabedoria=$6, carisma=$7,
+        forca_base=$8, destreza_base=$9, constituicao_base=$10,
+        inteligencia_base=$11, sabedoria_base=$12, carisma_base=$13
+    `, [
+      charId,
+      parseInt(a.forca)||10,  parseInt(a.destreza)||10,  parseInt(a.constituicao)||10,
       parseInt(a.inteligencia)||10, parseInt(a.sabedoria)||10, parseInt(a.carisma)||10,
-      parseInt(ab.forca)||10, parseInt(ab.destreza)||10, parseInt(ab.constituicao)||10,
+      parseInt(ab.forca)||10, parseInt(ab.destreza)||10,  parseInt(ab.constituicao)||10,
       parseInt(ab.inteligencia)||10, parseInt(ab.sabedoria)||10, parseInt(ab.carisma)||10,
-    );
+    ]);
 
-    // Clear & re-insert set-like tables
-    db.prepare('DELETE FROM saving_throw_profs WHERE character_id=?').run(charId);
-    const stIns = db.prepare('INSERT INTO saving_throw_profs (character_id,atributo) VALUES (?,?)');
-    Object.entries(st).forEach(([k,v]) => { if (v) stIns.run(charId, k); });
+    // ── Clear + re-insert set-like tables ──────────────────
 
-    db.prepare('DELETE FROM skill_profs WHERE character_id=?').run(charId);
-    const skIns = db.prepare('INSERT INTO skill_profs (character_id,skill_id) VALUES (?,?)');
-    Object.entries(sk).forEach(([k,v]) => { if (v) skIns.run(charId, k); });
+    await client.query('DELETE FROM saving_throw_profs WHERE character_id=$1', [charId]);
+    for (const [k, v] of Object.entries(st)) {
+      if (v) await client.query(
+        'INSERT INTO saving_throw_profs (character_id, atributo) VALUES ($1,$2)',
+        [charId, k]
+      );
+    }
 
-    db.prepare('DELETE FROM conditions WHERE character_id=?').run(charId);
-    const coIns = db.prepare('INSERT INTO conditions (character_id,condition_id) VALUES (?,?)');
-    Object.entries(co).forEach(([k,v]) => { if (v) coIns.run(charId, k); });
+    await client.query('DELETE FROM skill_profs WHERE character_id=$1', [charId]);
+    for (const [k, v] of Object.entries(sk)) {
+      if (v) await client.query(
+        'INSERT INTO skill_profs (character_id, skill_id) VALUES ($1,$2)',
+        [charId, k]
+      );
+    }
 
-    db.prepare('DELETE FROM resistances WHERE character_id=?').run(charId);
-    const resIns = db.prepare('INSERT INTO resistances (character_id,descricao) VALUES (?,?)');
-    (data.resistencias || []).forEach(r => { if (r) resIns.run(charId, r); });
+    await client.query('DELETE FROM conditions WHERE character_id=$1', [charId]);
+    for (const [k, v] of Object.entries(co)) {
+      if (v) await client.query(
+        'INSERT INTO conditions (character_id, condition_id) VALUES ($1,$2)',
+        [charId, k]
+      );
+    }
 
-    db.prepare('DELETE FROM weapons WHERE character_id=?').run(charId);
-    const wIns = db.prepare('INSERT INTO weapons (character_id,weapon_key,nome,dano,atributo,proficiente,bonus_extra) VALUES (?,?,?,?,?,?,?)');
-    (data.armas || []).forEach(w => {
-      wIns.run(charId, w.id||'', w.nome||'', w.dano||'', w.atributo||'forca', w.proficiente?1:0, w.bonusExtra||0);
-    });
+    await client.query('DELETE FROM resistances WHERE character_id=$1', [charId]);
+    for (const r of (data.resistencias || [])) {
+      if (r) await client.query(
+        'INSERT INTO resistances (character_id, descricao) VALUES ($1,$2)',
+        [charId, r]
+      );
+    }
 
-    db.prepare('DELETE FROM inventory WHERE character_id=?').run(charId);
-    const invIns = db.prepare('INSERT INTO inventory (character_id,item_key,nome,quantidade,descricao) VALUES (?,?,?,?,?)');
-    (data.inventario || []).forEach(i => {
-      invIns.run(charId, i.id||'', i.nome||'', i.quantidade||1, i.descricao||'');
-    });
+    await client.query('DELETE FROM weapons WHERE character_id=$1', [charId]);
+    for (const w of (data.armas || [])) {
+      await client.query(
+        'INSERT INTO weapons (character_id, weapon_key, nome, dano, atributo, proficiente, bonus_extra) VALUES ($1,$2,$3,$4,$5,$6,$7)',
+        [charId, w.id||'', w.nome||'', w.dano||'', w.atributo||'forca', !!w.proficiente, w.bonusExtra||0]
+      );
+    }
 
-    db.prepare('DELETE FROM spells WHERE character_id=?').run(charId);
-    const spIns = db.prepare('INSERT INTO spells (character_id,spell_key,nome,nivel,preparada) VALUES (?,?,?,?,?)');
-    (m.lista || []).forEach(s => {
-      spIns.run(charId, s.id||'', s.nome||'', s.nivel||0, s.preparada?1:0);
-    });
+    await client.query('DELETE FROM inventory WHERE character_id=$1', [charId]);
+    for (const i of (data.inventario || [])) {
+      await client.query(
+        'INSERT INTO inventory (character_id, item_key, nome, quantidade, descricao) VALUES ($1,$2,$3,$4,$5)',
+        [charId, i.id||'', i.nome||'', i.quantidade||1, i.descricao||'']
+      );
+    }
 
-    // Upsert single-row tables
-    db.prepare(`
-      INSERT INTO magic_config (character_id,atributo,slots_usados) VALUES (?,?,?)
-      ON CONFLICT(character_id) DO UPDATE SET atributo=excluded.atributo, slots_usados=excluded.slots_usados
-    `).run(charId, m.atributo||'', JSON.stringify(m.slotsUsados||[]));
+    await client.query('DELETE FROM spells WHERE character_id=$1', [charId]);
+    for (const s of (m.lista || [])) {
+      await client.query(
+        'INSERT INTO spells (character_id, spell_key, nome, nivel, preparada) VALUES ($1,$2,$3,$4,$5)',
+        [charId, s.id||'', s.nome||'', s.nivel||0, !!s.preparada]
+      );
+    }
 
-    db.prepare(`
-      INSERT INTO personality (character_id,tracos,ideais,vinculos,defeitos) VALUES (?,?,?,?,?)
-      ON CONFLICT(character_id) DO UPDATE SET tracos=excluded.tracos,ideais=excluded.ideais,vinculos=excluded.vinculos,defeitos=excluded.defeitos
-    `).run(charId, pe.tracos||'', pe.ideais||'', pe.vinculos||'', pe.defeitos||'');
+    // ── Upsert single-row tables ────────────────────────────
 
-    db.prepare(`
-      INSERT INTO appearance (character_id,idade,altura,peso,olhos,cabelo,pele) VALUES (?,?,?,?,?,?,?)
-      ON CONFLICT(character_id) DO UPDATE SET idade=excluded.idade,altura=excluded.altura,peso=excluded.peso,olhos=excluded.olhos,cabelo=excluded.cabelo,pele=excluded.pele
-    `).run(charId, ap.idade||'', ap.altura||'', ap.peso||'', ap.olhos||'', ap.cabelo||'', ap.pele||'');
+    await client.query(`
+      INSERT INTO magic_config (character_id, atributo, slots_usados)
+      VALUES ($1,$2,$3)
+      ON CONFLICT (character_id) DO UPDATE SET atributo=$2, slots_usados=$3
+    `, [charId, m.atributo||'', JSON.stringify(m.slotsUsados||[])]);
 
-    db.prepare('DELETE FROM languages WHERE character_id=?').run(charId);
-    const langIns = db.prepare('INSERT INTO languages (character_id,idioma) VALUES (?,?)');
-    (data.idiomas || []).forEach(l => { if (l) langIns.run(charId, l); });
+    await client.query(`
+      INSERT INTO personality (character_id, tracos, ideais, vinculos, defeitos)
+      VALUES ($1,$2,$3,$4,$5)
+      ON CONFLICT (character_id) DO UPDATE SET tracos=$2, ideais=$3, vinculos=$4, defeitos=$5
+    `, [charId, pe.tracos||'', pe.ideais||'', pe.vinculos||'', pe.defeitos||'']);
 
-    db.prepare(`
-      INSERT INTO coins (character_id,pp,po,pe,pc) VALUES (?,?,?,?,?)
-      ON CONFLICT(character_id) DO UPDATE SET pp=excluded.pp,po=excluded.po,pe=excluded.pe,pc=excluded.pc
-    `).run(charId, mo.pp||0, mo.po||0, mo.pe||0, mo.pc||0);
+    await client.query(`
+      INSERT INTO appearance (character_id, idade, altura, peso, olhos, cabelo, pele)
+      VALUES ($1,$2,$3,$4,$5,$6,$7)
+      ON CONFLICT (character_id) DO UPDATE SET idade=$2, altura=$3, peso=$4, olhos=$5, cabelo=$6, pele=$7
+    `, [charId, ap.idade||'', ap.altura||'', ap.peso||'', ap.olhos||'', ap.cabelo||'', ap.pele||'']);
 
+    await client.query('DELETE FROM languages WHERE character_id=$1', [charId]);
+    for (const l of (data.idiomas || [])) {
+      if (l) await client.query(
+        'INSERT INTO languages (character_id, idioma) VALUES ($1,$2)',
+        [charId, l]
+      );
+    }
+
+    await client.query(`
+      INSERT INTO coins (character_id, pp, po, pe, pc)
+      VALUES ($1,$2,$3,$4,$5)
+      ON CONFLICT (character_id) DO UPDATE SET pp=$2, po=$3, pe=$4, pc=$5
+    `, [charId, mo.pp||0, mo.po||0, mo.pe||0, mo.pc||0]);
+
+    await client.query('COMMIT');
     return charId;
-  });
 
-  return run();
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 /* ─────────────────────────────────────────
@@ -261,10 +311,10 @@ function saveFullCharacter(db, userId, data, existingId = null) {
 ───────────────────────────────────────── */
 router.get('/', async (req, res) => {
   try {
-    const db    = await getDb();     // ← await
-    const chars = db.prepare(
-      'SELECT id, nome, raca, classe, nivel, updated_at FROM characters WHERE user_id = ? ORDER BY updated_at DESC'
-    ).all(req.user.userId);
+    const chars = await query(
+      'SELECT id, nome, raca, classe, nivel, updated_at FROM characters WHERE user_id=$1 ORDER BY updated_at DESC',
+      [req.user.userId]
+    );
     return res.json(chars);
   } catch (err) {
     console.error('[GET /characters]', err);
@@ -277,8 +327,7 @@ router.get('/', async (req, res) => {
 ───────────────────────────────────────── */
 router.get('/:id', async (req, res) => {
   try {
-    const db   = await getDb();      // ← await
-    const char = loadFullCharacter(db, parseInt(req.params.id), req.user.userId);
+    const char = await loadFullCharacter(parseInt(req.params.id), req.user.userId);
     if (!char) return res.status(404).json({ error: 'Personagem não encontrado.' });
     return res.json(char);
   } catch (err) {
@@ -295,9 +344,8 @@ router.post('/', async (req, res) => {
     if (!req.body || typeof req.body !== 'object') {
       return res.status(400).json({ error: 'Corpo da requisição inválido.' });
     }
-    const db     = await getDb();    // ← await
-    const charId = saveFullCharacter(db, req.user.userId, req.body, null);
-    const char   = loadFullCharacter(db, charId, req.user.userId);
+    const charId = await saveFullCharacter(req.user.userId, req.body, null);
+    const char   = await loadFullCharacter(charId, req.user.userId);
     return res.status(201).json(char);
   } catch (err) {
     console.error('[POST /characters]', err);
@@ -313,15 +361,15 @@ router.put('/:id', async (req, res) => {
     if (!req.body || typeof req.body !== 'object') {
       return res.status(400).json({ error: 'Corpo da requisição inválido.' });
     }
-    const db = await getDb();        // ← await
     const id = parseInt(req.params.id);
 
-    const existing = db.prepare(
-      'SELECT id FROM characters WHERE id = ? AND user_id = ?'
-    ).get(id, req.user.userId);
+    const existing = await queryOne(
+      'SELECT id FROM characters WHERE id=$1 AND user_id=$2',
+      [id, req.user.userId]
+    );
     if (!existing) return res.status(404).json({ error: 'Personagem não encontrado.' });
 
-    saveFullCharacter(db, req.user.userId, req.body, id);
+    await saveFullCharacter(req.user.userId, req.body, id);
     return res.json({ ok: true });
   } catch (err) {
     console.error('[PUT /characters/:id]', err);
@@ -334,10 +382,12 @@ router.put('/:id', async (req, res) => {
 ───────────────────────────────────────── */
 router.delete('/:id', async (req, res) => {
   try {
-    const db = await getDb();        // ← await
     const id = parseInt(req.params.id);
-    const r  = db.prepare('DELETE FROM characters WHERE id = ? AND user_id = ?').run(id, req.user.userId);
-    if (r.changes === 0) return res.status(404).json({ error: 'Personagem não encontrado.' });
+    const result = await pool.query(
+      'DELETE FROM characters WHERE id=$1 AND user_id=$2',
+      [id, req.user.userId]
+    );
+    if (result.rowCount === 0) return res.status(404).json({ error: 'Personagem não encontrado.' });
     return res.json({ ok: true });
   } catch (err) {
     console.error('[DELETE /characters/:id]', err);
