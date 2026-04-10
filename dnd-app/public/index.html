@@ -18,6 +18,77 @@
   <span>ᛈ</span><span>ᛉ</span><span>ᛊ</span><span>ᛏ</span><span>ᛒ</span>
 </div>
 
+<!-- ═══════════════ TELA DE AUTH ═══════════════ -->
+<div class="auth-overlay" id="auth-overlay">
+  <div class="auth-screen">
+    <div class="auth-header">
+      <div class="auth-emblem">⚔️</div>
+      <h1 class="auth-title">Grimório do Aventureiro</h1>
+      <p class="auth-subtitle">D&amp;D 5ª Edição · SRD</p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="auth-tabs" role="tablist">
+      <button class="auth-tab active" id="tab-login-btn" role="tab" aria-selected="true" data-authtab="login">Entrar</button>
+      <button class="auth-tab" id="tab-register-btn" role="tab" aria-selected="false" data-authtab="register">Criar Conta</button>
+    </div>
+
+    <!-- Login form -->
+    <form class="auth-form" id="login-form" autocomplete="on" novalidate>
+      <div class="auth-field">
+        <label for="login-username">Username</label>
+        <input type="text" id="login-username" name="username" placeholder="seu_username" autocomplete="username" maxlength="30" required/>
+      </div>
+      <div class="auth-field">
+        <label for="login-password">Senha</label>
+        <input type="password" id="login-password" name="password" placeholder="••••••••" autocomplete="current-password" required/>
+      </div>
+      <div class="auth-error" id="login-error" role="alert" style="display:none"></div>
+      <button type="submit" class="btn btn-auth">⚔️ Entrar na Aventura</button>
+    </form>
+
+    <!-- Register form -->
+    <form class="auth-form" id="register-form" style="display:none" autocomplete="on" novalidate>
+      <div class="auth-field">
+        <label for="reg-username">Username</label>
+        <input type="text" id="reg-username" name="username" placeholder="seu_username" autocomplete="username" maxlength="30" required/>
+        <span class="auth-hint">3–30 caracteres, letras/números/_ .-</span>
+      </div>
+      <div class="auth-field">
+        <label for="reg-password">Senha</label>
+        <input type="password" id="reg-password" name="password" placeholder="mínimo 6 caracteres" autocomplete="new-password" required/>
+      </div>
+      <div class="auth-field">
+        <label for="reg-confirm">Confirmar Senha</label>
+        <input type="password" id="reg-confirm" name="confirm" placeholder="repita a senha" autocomplete="new-password" required/>
+      </div>
+      <div class="auth-error" id="register-error" role="alert" style="display:none"></div>
+      <button type="submit" class="btn btn-auth">📜 Criar Conta</button>
+    </form>
+  </div>
+</div>
+
+<!-- ═══════════════ LISTA DE PERSONAGENS ═══════════════ -->
+<div class="char-list-overlay" id="char-list-overlay" style="display:none">
+  <div class="char-list-screen">
+    <div class="char-list-header">
+      <div>
+        <h2 class="char-list-title">⚔️ Seus Personagens</h2>
+        <p class="char-list-user">Bem-vindo, <strong id="char-list-username">—</strong></p>
+      </div>
+      <button class="btn btn-logout" id="btn-logout" type="button">🚪 Sair</button>
+    </div>
+
+    <div id="char-list-items" class="char-list-items">
+      <div class="char-list-loading">Carregando personagens…</div>
+    </div>
+
+    <button class="btn btn-create-char" id="btn-create-new-char" type="button">
+      ✨ Criar Novo Personagem
+    </button>
+  </div>
+</div>
+
 <!-- ═══════════════ WIZARD DE CRIAÇÃO ═══════════════ -->
 <div class="creation-overlay" id="creation-overlay" role="dialog" aria-modal="true" aria-labelledby="creation-title">
   <div class="creation-screen">
@@ -600,8 +671,10 @@
 
   <footer class="site-footer">
     <button class="btn btn-new-char" id="btn-new-char" type="button">✨ Novo Personagem</button>
+    <button class="btn btn-char-list" id="btn-char-list" type="button">📋 Meus Personagens</button>
     <button class="btn btn-reset" id="btn-reset" type="button">🗑️ Limpar</button>
-    <p class="footer-note">Dados salvos localmente · D&amp;D 5E SRD</p>
+    <button class="btn btn-logout-sheet" id="btn-logout-sheet" type="button">🚪 Sair</button>
+    <p class="footer-note">Dados salvos no servidor · D&amp;D 5E SRD</p>
   </footer>
 
 </div>
@@ -619,6 +692,7 @@
   </div>
 </div>
 
+<script src="api.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

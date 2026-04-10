@@ -1,6 +1,7 @@
 // server/index.js — Grimório do Aventureiro · D&D 5E API
 'use strict';
 
+
 const express    = require('express');
 const cors       = require('cors');
 const path       = require('path');
@@ -10,6 +11,9 @@ const characterRoutes = require('./routes/characterRoutes');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
+
+require('dotenv').config();
+
 
 /* ── Middleware ── */
 app.use(cors({
