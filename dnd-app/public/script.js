@@ -1630,6 +1630,7 @@ async function init() {
   if (Auth?.isLoggedIn()) {
     try {
       await AuthAPI.me(); // validate token
+      $('auth-overlay').style.display = 'none';
       const savedId = localStorage.getItem('grimorio_current_char_id');
       if (savedId) {
         try {
