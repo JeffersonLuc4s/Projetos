@@ -116,7 +116,7 @@ body{background:var(--clr-bg);color:var(--clr-text);font-family:var(--font-body)
 /* ── Form basics ── */
 .field-group{display:flex;flex-direction:column;gap:.85rem}.field-row{display:grid;grid-template-columns:1fr 1fr;gap:.85rem}.field{display:flex;flex-direction:column;gap:.3rem}
 label{font-family:var(--font-display);font-size:.67rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--clr-text2)}
-input[type="text"],input[type="number"],textarea,select{background:var(--clr-bg2);border:1px solid var(--clr-border);border-radius:var(--radius-sm);color:var(--clr-text);font-family:var(--font-body);font-size:1rem;padding:.65rem .85rem;width:100%;transition:border-color var(--transition),box-shadow var(--transition),background var(--transition);-webkit-appearance:none;appearance:none}
+input[type="text"],input[type="password"],input[type="number"],textarea,select{background:var(--clr-bg2);border:1px solid var(--clr-border);border-radius:var(--radius-sm);color:var(--clr-text);font-family:var(--font-body);font-size:1rem;padding:.65rem .85rem;width:100%;transition:border-color var(--transition),box-shadow var(--transition),background var(--transition);-webkit-appearance:none;appearance:none}
 input:focus,textarea:focus,select:focus{outline:none;border-color:var(--clr-gold);background:var(--clr-bg3);box-shadow:0 0 0 3px rgba(201,168,76,.12),var(--shadow-sm)}
 input::placeholder,textarea::placeholder{color:var(--clr-text3);font-style:italic}
 input[type="number"]{text-align:center;font-size:1.05rem}
