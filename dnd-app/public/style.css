@@ -372,6 +372,11 @@ input.invalid{border-color:var(--clr-crimson2)!important;box-shadow:0 0 0 3px rg
 .exh-3,.exh-4{color:var(--clr-crimson2)}
 .exh-5,.exh-6{color:#ff4444;text-shadow:0 0 8px rgba(255,68,68,.5)}
 
+/* ── Exhaustion effects ── */
+.exh-disadv-badge{display:inline-block;font-family:var(--font-display);font-size:.58rem;font-weight:700;letter-spacing:.06em;color:#fff;background:var(--clr-crimson2);border-radius:3px;padding:.1em .35em;margin-left:.4rem;vertical-align:middle;opacity:.9}
+.exhaustion-penalty{border-color:var(--clr-crimson2)!important;color:var(--clr-crimson2)!important}
+#exh-death-banner{background:rgba(192,57,79,.18);border:1px solid var(--clr-crimson2);border-radius:var(--radius-md);color:var(--clr-crimson2);font-family:var(--font-display);font-size:1rem;font-weight:700;letter-spacing:.04em;padding:.75rem 1.25rem;margin:.5rem 0 1rem;text-align:center}
+
 /* ── HD remaining low/mid ── */
 .hd-remaining.low{color:var(--clr-crimson2)!important}
 .hd-remaining.mid{color:var(--clr-hp-mid)!important}

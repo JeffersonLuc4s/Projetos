@@ -757,12 +757,118 @@ function renderConditions(){
   }
 }
 
+function getExhaustionEffects(){
+  const lvl=appData.exaustao||0;
+  return {
+    disadvChecks:  lvl>=1, // perícias e testes de habilidade
+    halfSpeed:     lvl>=2,
+    disadvAttacks: lvl>=3, // ataques
+    disadvST:      lvl>=3, // saving throws
+    halfHP:        lvl>=4,
+    zeroSpeed:     lvl>=5,
+    dead:          lvl>=6,
+  };
+}
+
 function renderExaustao(){
   const lvl=appData.exaustao||0;
   setEl('exh-level',lvl);
   setEl('exh-effect',EXHAUSTION_EFFECTS[lvl]||EXHAUSTION_EFFECTS[0]);
   const disp=$('exh-level');
   if(disp){ disp.classList.remove('exh-0','exh-1','exh-2','exh-3','exh-4','exh-5','exh-6'); disp.classList.add(`exh-${lvl}`); }
+
+  const fx=getExhaustionEffects();
+
+  // Velocidade efetiva
+  const baseSpeed=appData.combate.velocidade||30;
+  let efectiveSpeed = fx.zeroSpeed ? 0 : fx.halfSpeed ? Math.floor(baseSpeed/2) : baseSpeed;
+  const velEl=$('velocidade');
+  if(velEl){
+    velEl.dataset.baseSpeed=baseSpeed;
+    if(fx.zeroSpeed||fx.halfSpeed){
+      velEl.value=efectiveSpeed;
+      velEl.classList.add('exhaustion-penalty');
+      velEl.title=`Base: ${baseSpeed} ft — reduzida por exaustão nível ${lvl}`;
+    } else {
+      velEl.classList.remove('exhaustion-penalty');
+      velEl.title='';
+    }
+  }
+
+  // HP máximo efetivo (nível 4+)
+  const baseMax=appData.vida.max||0;
+  const effectiveMax=fx.halfHP ? Math.floor(baseMax/2) : baseMax;
+  const hpMaxEl=$('hp-max');
+  if(hpMaxEl){
+    if(fx.halfHP){
+      hpMaxEl.dataset.baseMax=baseMax;
+      hpMaxEl.classList.add('exhaustion-penalty');
+      hpMaxEl.title=`HP máximo base: ${baseMax} — reduzido à metade por exaustão`;
+      // Ajusta HP atual se passar do máximo efetivo
+      if((appData.vida.atual||0)>effectiveMax){
+        appData.vida.atual=effectiveMax;
+        setVal('hp-atual',effectiveMax);
+      }
+    } else {
+      hpMaxEl.classList.remove('exhaustion-penalty');
+      hpMaxEl.title='';
+    }
+  }
+  // Atualiza barra de HP com max efetivo
+  const hpBarEl=$('hp-bar'), hpTextEl=$('hp-bar-text');
+  if(hpBarEl){
+    const atual=appData.vida.atual||0;
+    const pct=effectiveMax>0?clamp(Math.round((atual/effectiveMax)*100),0,100):0;
+    hpBarEl.style.width=pct+'%';
+    hpBarEl.classList.remove('mid','low');
+    if(pct<=25) hpBarEl.classList.add('low'); else if(pct<=50) hpBarEl.classList.add('mid');
+    let txt=`${atual} / ${effectiveMax}`;
+    if(fx.halfHP) txt+=` ⚠️ (base ${baseMax})`;
+    if(appData.vida.temp>0) txt+=` (+${appData.vida.temp} tmp)`;
+    if(hpTextEl) hpTextEl.textContent=txt;
+  }
+
+  // Badge de desvantagem nos saving throws (nível 3+)
+  document.querySelectorAll('.st-row').forEach(row=>{
+    let badge=row.querySelector('.exh-disadv-badge');
+    if(fx.disadvST){
+      if(!badge){ badge=document.createElement('span'); badge.className='exh-disadv-badge'; badge.title='Desvantagem por exaustão'; badge.textContent='DESV'; row.appendChild(badge); }
+    } else {
+      if(badge) badge.remove();
+    }
+  });
+
+  // Badge de desvantagem nas perícias (nível 1+)
+  document.querySelectorAll('.skill-row').forEach(row=>{
+    let badge=row.querySelector('.exh-disadv-badge');
+    if(fx.disadvChecks){
+      if(!badge){ badge=document.createElement('span'); badge.className='exh-disadv-badge'; badge.title='Desvantagem por exaustão'; badge.textContent='DESV'; row.appendChild(badge); }
+    } else {
+      if(badge) badge.remove();
+    }
+  });
+
+  // Badge de desvantagem nas armas (nível 3+)
+  document.querySelectorAll('.weapon-card').forEach(card=>{
+    let badge=card.querySelector('.exh-disadv-badge');
+    if(fx.disadvAttacks){
+      if(!badge){ badge=document.createElement('span'); badge.className='exh-disadv-badge'; badge.title='Desvantagem em ataques por exaustão'; badge.textContent='DESV'; card.querySelector('.wscard-attack')?.appendChild(badge); }
+    } else {
+      if(badge) badge.remove();
+    }
+  });
+
+  // Overlay de morte (nível 6)
+  let deathBanner=$('exh-death-banner');
+  if(fx.dead){
+    if(!deathBanner){
+      deathBanner=document.createElement('div'); deathBanner.id='exh-death-banner';
+      deathBanner.innerHTML='💀 Nível 6 de Exaustão — Personagem morto.';
+      $('app-wrapper')?.prepend(deathBanner);
+    }
+  } else {
+    if(deathBanner) deathBanner.remove();
+  }
 }
 
 function renderResistencias(){
@@ -850,8 +956,8 @@ function bindCombate(){
   });
   $('xp-input').addEventListener('input',e=>{appData.combate.xp=parseInt(e.target.value)||0;debouncedSave();});
   // Exaustão
-  $('exh-minus').addEventListener('click',()=>{appData.exaustao=clamp((appData.exaustao||0)-1,0,6);renderExaustao();debouncedSave();});
-  $('exh-plus').addEventListener('click',()=>{appData.exaustao=clamp((appData.exaustao||0)+1,0,6);renderExaustao();debouncedSave();});
+  $('exh-minus').addEventListener('click',()=>{appData.exaustao=clamp((appData.exaustao||0)-1,0,6);renderExaustao();renderSavingThrows();renderProfPericiasList();renderWeaponsSummary();debouncedSave();});
+  $('exh-plus').addEventListener('click',()=>{appData.exaustao=clamp((appData.exaustao||0)+1,0,6);renderExaustao();renderSavingThrows();renderProfPericiasList();renderWeaponsSummary();debouncedSave();});
   // Resistências
   const resInput=$('res-input');
   function addRes(){const v=resInput.value.trim();if(!v)return;if(!appData.resistencias.includes(v))appData.resistencias.push(v);resInput.value='';renderResistencias();debouncedSave();}
