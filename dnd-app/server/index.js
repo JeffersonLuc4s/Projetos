@@ -21,13 +21,11 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '2mb' }));
 
-// Dev request logger
-if (process.env.NODE_ENV !== 'production') {
-  app.use((req, _res, next) => {
-    console.log(`${new Date().toISOString().slice(11, 19)} ${req.method} ${req.path}`);
-    next();
-  });
-}
+// Request logger
+app.use((req, _res, next) => {
+  console.log(`${new Date().toISOString().slice(11, 19)} ${req.method} ${req.path}`);
+  next();
+});
 
 /* ── API routes ── */
 app.use('/api/auth',       authRoutes);

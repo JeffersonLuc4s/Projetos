@@ -1,41 +1,36 @@
-// server/auth.js — JWT & bcrypt utilities
+// server/auth.js — bcrypt + JWT helpers
+'use strict';
+
 const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
+const jwt    = require('jsonwebtoken');
 
 const SALT_ROUNDS = 12;
-const JWT_SECRET  = process.env.JWT_SECRET || 'grimorio-secret-change-in-production-please';
+const JWT_SECRET  = process.env.JWT_SECRET || 'changeme';
 const JWT_EXPIRES = '7d';
 
-async function hashPassword(plain) {
-  return bcrypt.hash(plain, SALT_ROUNDS);
+async function hashPassword(password) {
+  return bcrypt.hash(password, SALT_ROUNDS);
 }
 
-async function verifyPassword(plain, hashed) {
-  return bcrypt.compare(plain, hashed);
+async function verifyPassword(password, hash) {
+  return bcrypt.compare(password, hash);
 }
 
 function signToken(payload) {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES });
 }
 
-function verifyToken(token) {
-  return jwt.verify(token, JWT_SECRET); // throws if invalid/expired
-}
-
-// Express middleware — attach req.user if valid token
 function requireAuth(req, res, next) {
-  const header = req.headers['authorization'] || '';
+  const header = req.headers.authorization || '';
   const token  = header.startsWith('Bearer ') ? header.slice(7) : null;
 
-  if (!token) {
-    return res.status(401).json({ error: 'Token ausente. Faça login.' });
-  }
+  if (!token) return res.status(401).json({ error: 'Token não fornecido.' });
 
   try {
-    req.user = verifyToken(token);
+    req.user = jwt.verify(token, JWT_SECRET);
     next();
-  } catch (err) {
-    return res.status(401).json({ error: 'Token inválido ou expirado. Faça login novamente.' });
+  } catch {
+    return res.status(401).json({ error: 'Token inválido ou expirado.' });
   }
 }
 
