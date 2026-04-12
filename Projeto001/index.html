@@ -190,17 +190,38 @@
       <p class="section-desc">Ambientes projetados para o conforto e o aprendizado dos alunos.</p>
     </div>
   </div>
-  <div class="container">
+  <div class="container" style="position:relative">
+    <button class="gallery-arrow gallery-arrow-left" onclick="scrollGallery(-1)" aria-label="Anterior">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
     <div class="gallery-track" id="galleryTrack">
-      <div class="gallery-item"><img src="https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=500&h=375&fit=crop" alt="Sala de aula"><div class="gallery-label">Salas de aula</div></div>
-      <div class="gallery-item"><img src="https://images.unsplash.com/photo-1568667256549-094345857637?w=500&h=375&fit=crop" alt="Biblioteca"><div class="gallery-label">Biblioteca</div></div>
-      <div class="gallery-item"><img src="https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=500&h=375&fit=crop" alt="Quadra"><div class="gallery-label">Quadra poliesportiva</div></div>
-      <div class="gallery-item"><img src="https://images.unsplash.com/photo-1562774053-701939374585?w=500&h=375&fit=crop" alt="Laboratório"><div class="gallery-label">Laboratório de ciências</div></div>
-      <div class="gallery-item"><img src="https://images.unsplash.com/photo-1606761568499-6d2451b23c66?w=500&h=375&fit=crop" alt="Informática"><div class="gallery-label">Lab. de informática</div></div>
-      <div class="gallery-item"><img src="https://images.unsplash.com/photo-1600494603989-9650cf6ddd3d?w=500&h=375&fit=crop" alt="Pátio"><div class="gallery-label">Pátio e convivência</div></div>
+      <div class="gallery-item"><img src="https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=500&h=375&fit=crop" alt="Salas de aula" onclick="openLightbox(this)"><div class="gallery-label">Salas de aula</div></div>
+      <div class="gallery-item"><img src="https://images.unsplash.com/photo-1568667256549-094345857637?w=500&h=375&fit=crop" alt="Biblioteca" onclick="openLightbox(this)"><div class="gallery-label">Biblioteca</div></div>
+      <div class="gallery-item"><img src="https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=500&h=375&fit=crop" alt="Quadra poliesportiva" onclick="openLightbox(this)"><div class="gallery-label">Quadra poliesportiva</div></div>
+      <div class="gallery-item"><img src="https://images.unsplash.com/photo-1562774053-701939374585?w=500&h=375&fit=crop" alt="Laboratório de ciências" onclick="openLightbox(this)"><div class="gallery-label">Laboratório de ciências</div></div>
+      <div class="gallery-item"><img src="https://images.unsplash.com/photo-1606761568499-6d2451b23c66?w=500&h=375&fit=crop" alt="Lab. de informática" onclick="openLightbox(this)"><div class="gallery-label">Lab. de informática</div></div>
+      <div class="gallery-item"><img src="https://images.unsplash.com/photo-1600494603989-9650cf6ddd3d?w=500&h=375&fit=crop" alt="Pátio e convivência" onclick="openLightbox(this)"><div class="gallery-label">Pátio e convivência</div></div>
     </div>
+    <button class="gallery-arrow gallery-arrow-right" onclick="scrollGallery(1)" aria-label="Próximo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
   </div>
 </section>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()" aria-label="Fechar">&times;</button>
+  <button class="lightbox-arrow lightbox-prev" onclick="event.stopPropagation();lightboxNav(-1)" aria-label="Anterior">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+  </button>
+  <div class="lightbox-content" onclick="event.stopPropagation()">
+    <img id="lightboxImg" src="" alt="">
+    <div class="lightbox-label" id="lightboxLabel"></div>
+  </div>
+  <button class="lightbox-arrow lightbox-next" onclick="event.stopPropagation();lightboxNav(1)" aria-label="Próximo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+  </button>
+</div>
 
 <!-- ENSINO -->
 <section class="section" id="ensino">

@@ -109,6 +109,94 @@ let depoAuto = setInterval(() => {
   depoTrack.style.transform = `translateX(-${depoIndex * (100 / vis)}%)`;
 }, 4000);
 
+// Gallery — auto-scroll infinito + setas + lightbox
+(function () {
+  const track = document.getElementById('galleryTrack');
+  const origItems = Array.from(track.querySelectorAll('.gallery-item'));
+  const origCount = origItems.length;
+
+  // Guarda os dados originais pra o lightbox
+  const galleryData = origItems.map(item => {
+    const img = item.querySelector('img');
+    return { src: img.src, label: img.alt };
+  });
+
+  // Atualiza onclick dos originais com índice
+  origItems.forEach((item, i) => {
+    item.querySelector('img').setAttribute('onclick', `openLightbox(${i})`);
+  });
+
+  // Clona os itens pra criar loop infinito
+  origItems.forEach((item, i) => {
+    const clone = item.cloneNode(true);
+    clone.classList.add('gallery-clone');
+    clone.querySelector('img').setAttribute('onclick', `openLightbox(${i})`);
+    track.appendChild(clone);
+  });
+
+  // Auto-scroll
+  let paused = false;
+  const speed = 0.7; // px por frame
+
+  function step() {
+    if (!paused) {
+      track.scrollLeft += speed;
+      // Quando chega na metade (fim dos originais), volta pro início sem pular
+      const half = track.scrollWidth / 2;
+      if (track.scrollLeft >= half) {
+        track.scrollLeft -= half;
+      }
+    }
+    requestAnimationFrame(step);
+  }
+
+  track.addEventListener('mouseenter', () => paused = true);
+  track.addEventListener('mouseleave', () => paused = false);
+  requestAnimationFrame(step);
+
+  // Setas manuais
+  window.scrollGallery = function (dir) {
+    paused = true;
+    track.scrollBy({ left: dir * 380, behavior: 'smooth' });
+    setTimeout(() => paused = false, 800);
+  };
+
+  // Lightbox
+  let lightboxIndex = 0;
+
+  window.openLightbox = function (index) {
+    lightboxIndex = index;
+    updateLightbox();
+    document.getElementById('lightbox').classList.add('active');
+    document.body.style.overflow = 'hidden';
+  };
+
+  window.closeLightbox = function () {
+    document.getElementById('lightbox').classList.remove('active');
+    document.body.style.overflow = '';
+  };
+
+  window.lightboxNav = function (dir) {
+    lightboxIndex = (lightboxIndex + dir + origCount) % origCount;
+    updateLightbox();
+  };
+
+  function updateLightbox() {
+    const data = galleryData[lightboxIndex];
+    document.getElementById('lightboxImg').src = data.src;
+    document.getElementById('lightboxImg').alt = data.label;
+    document.getElementById('lightboxLabel').textContent = data.label;
+  }
+
+  document.addEventListener('keydown', (e) => {
+    const lb = document.getElementById('lightbox');
+    if (!lb.classList.contains('active')) return;
+    if (e.key === 'Escape') window.closeLightbox();
+    if (e.key === 'ArrowLeft') window.lightboxNav(-1);
+    if (e.key === 'ArrowRight') window.lightboxNav(1);
+  });
+})();
+
 // Video placeholder
 function loadVideo() {
   const w = document.querySelector('.video-wrapper');
