@@ -30,16 +30,37 @@ const MANGA_KEYWORDS = [
   "novel", "quadrinho", "hq anime",
 ];
 
-// Títulos de anime conhecidos (usados junto com figure/manga para confirmar)
-const ANIME_TITLES = [
-  "naruto", "one piece", "dragon ball", "attack on titan", "shingeki",
-  "demon slayer", "kimetsu no yaiba", "jujutsu kaisen", "my hero academia",
-  "boku no hero", "sword art online", "fullmetal alchemist", "death note",
-  "hunter x hunter", "bleach", "fairy tail", "tokyo ghoul", "re:zero",
-  "overlord", "black clover", "chainsaw man", "spy x family", "vinland saga",
-  "berserk", "vagabond", "one punch man", "mob psycho", "evangelion",
-  "frieren", "blue lock", "oshi no ko", "dandadan", "boruto", "sakamoto days",
-  "solo leveling", "dungeon meshi", "shangri-la frontier",
+// Lista oficial de títulos permitidos — só produtos dessas séries passam
+const ALLOWED_TITLES = [
+  "haikyu", "naruto", "boruto", "one piece", "demon slayer", "chainsaw man",
+  "spy x family", "beastars", "atelier of witch hat", "soul eater",
+  "evangelion", "neon genesis", "fairy tail", "bleach", "noragami",
+  "tokyo ghoul", "ataque dos titãs", "attack on titan", "shingeki",
+  "dr. stone", "food wars", "promised neverland", "fire force",
+  "moriarty", "seraph of the end", "akira", "battle angel alita",
+  "death note", "hunter x hunter", "yu yu hakusho", "20th century boys",
+  "mob psycho", "bungo stray dogs", "golden kamuy", "platinum end",
+  "bakuman", "fullmetal alchemist", "monster kanzenban", "slam dunk",
+  "vagabond", "nausicaä", "my hero academia", "boku no hero",
+  "tokyo revengers", "edens zero", "shaman king", "made in abyss",
+  "frieren", "blue period", "vinland saga", "black clover",
+  "jujutsu kaisen", "black butler", "jojo", "dragon ball", "blue lock",
+  "solo leveling", "boa noite punpun", "blue exorcist", "berserk",
+  "seven deadly sins", "gash bell", "sakamoto days", "hanako-kun",
+  "pluto", "hellsing", "dandadan", "overlord", "fire punch",
+  "hajime no ippo", "wind breaker", "look back", "pokemon", "pokémon",
+  "that time i got reincarnated", "slime", "gachiakuta",
+  "one-punch man", "one punch man", "record of ragnarok", "asadora",
+  "ashita no joe", "dororo", "mushoku tensei", "cavaleiros do zodíaco",
+  "alice in borderland", "ghost in the shell", "parasyte", "ao ashi",
+  "kagurabachi", "billy bat", "mushishi", "as flores do mal",
+  "terra das gemas", "re:zero", "uzumaki", "tomie", "junji ito",
+  "solanin", "vagabond", "akane banashi", "astro boy", "kimba",
+  "metrópolis", "metropolis", "osamu tezuka", "tezuka",
+  "dragon quest", "final fantasy", "kamen rider",
+  "battle royale", "sanctuary", "gto", "hetalia",
+  "caçando dragões", "caça dragões", "angústia",
+  "blue box", "tower dungeon", "wind breaker",
 ];
 
 // Palavras que EXCLUEM o produto (independente do resto)
@@ -62,13 +83,15 @@ export function isAnimeProduct(name: string): boolean {
   // Bloqueia imediatamente se tiver palavra da blocklist
   if (BLOCKLIST.some(kw => lower.includes(kw))) return false;
 
-  // Aceita se tiver keyword de figure/colecionável
-  if (FIGURE_KEYWORDS.some(kw => lower.includes(kw))) return true;
+  // Precisa ser figure/manga/livro E pertencer a um título da lista
+  const isCorrectType =
+    FIGURE_KEYWORDS.some(kw => lower.includes(kw)) ||
+    MANGA_KEYWORDS.some(kw => lower.includes(kw));
 
-  // Aceita se tiver keyword de manga/livro
-  if (MANGA_KEYWORDS.some(kw => lower.includes(kw))) return true;
+  if (!isCorrectType) return false;
 
-  return false;
+  // Verifica se é de um título permitido
+  return ALLOWED_TITLES.some(title => lower.includes(title));
 }
 
 export function detectCategory(name: string): string {

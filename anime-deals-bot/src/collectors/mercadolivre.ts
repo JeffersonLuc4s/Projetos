@@ -149,7 +149,7 @@ async function searchViaScraping(query: string): Promise<RawProduct[]> {
     await page.waitForTimeout(2000);
 
     const items = await page.$$eval(".ui-search-layout__item", (els: any[]) =>
-      els.slice(0, 20).map((el) => {
+      els.slice(0, 10).map((el) => {
         const title = el.querySelector(".poly-component__title")?.textContent?.trim() ?? "";
 
         // Preço atual: usa fraction + cents separados (mais robusto que parsear o textContent)
@@ -282,7 +282,34 @@ export async function collectFromMercadoLivre(): Promise<RawProduct[]> {
     }
   } else {
     logger.info("[ML] Sem credenciais OAuth. Usando scraping do site.");
-    const scrapeQueries = ["figure anime promoção", "manga desconto", "funko pop anime oferta"];
+    const scrapeQueries = [
+      // Manga
+      "manga desconto",
+      "manga promoção",
+      "manga barato",
+      "box manga promoção",
+      "coleção manga desconto",
+      "naruto manga promoção",
+      "one piece manga oferta",
+      "jujutsu manga desconto",
+      // Figures
+      "figure anime promoção",
+      "figure anime desconto",
+      "figure anime barato",
+      "funko pop anime oferta",
+      "funko pop promoção",
+      "figure naruto promoção",
+      "figure dragon ball oferta",
+      "figure one piece desconto",
+      "figure gojo promoção",
+      "figure banpresto promoção",
+      // Livros
+      "livros promoção",
+      "livros baratos",
+      "livros mais vendidos",
+      "box livros desconto",
+      "livros fantasia box oferta",
+    ];
     for (const query of scrapeQueries) {
       try {
         logger.info(`[ML Scraping] Buscando: "${query}"`);

@@ -63,16 +63,32 @@ function signedHeaders(
 }
 
 const AMAZON_KEYWORDS = [
-  "mangá naruto",
-  "figure anime",
-  "funko pop anime",
-  "one piece figure",
-  "dragon ball z figure",
-  "demon slayer manga",
-  "jujutsu kaisen figure",
-  "nendoroid anime",
-  "banpresto anime",
-  "box colecionador manga",
+  // Manga
+  "manga desconto",
+  "manga promoção",
+  "manga barato",
+  "box manga promoção",
+  "coleção manga desconto",
+  "naruto manga promoção",
+  "one piece manga oferta",
+  "jujutsu manga desconto",
+  // Figures
+  "figure anime promoção",
+  "figure anime desconto",
+  "figure anime barato",
+  "funko pop anime oferta",
+  "funko pop promoção",
+  "figure naruto promoção",
+  "figure dragon ball oferta",
+  "figure one piece desconto",
+  "figure gojo promoção",
+  "figure banpresto promoção",
+  // Livros
+  "livros promoção",
+  "livros baratos",
+  "livros mais vendidos",
+  "box livros desconto",
+  "livros fantasia box oferta",
 ];
 
 async function collectViaAPI(accessKey: string, secretKey: string, partnerTag: string, region: string): Promise<RawProduct[]> {

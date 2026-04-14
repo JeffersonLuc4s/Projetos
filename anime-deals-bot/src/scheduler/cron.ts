@@ -3,7 +3,7 @@ import { addCollectJob } from "../queue/queues";
 import { logger } from "../utils/logger";
 
 const SCHEDULES: Array<{ name: string; cron: string; source: "amazon" | "mercadolivre" | "all" }> = [
-  { name: "A cada hora", cron: "0 * * * *", source: "all" },
+  { name: "A cada 20 minutos", cron: "*/20 * * * *", source: "all" },
 ];
 
 export function startScheduler() {
