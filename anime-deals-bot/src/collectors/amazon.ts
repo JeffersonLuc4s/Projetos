@@ -397,7 +397,7 @@ async function collectViaScraping(tag: string): Promise<RawProduct[]> {
   ];
 
   const products: RawProduct[] = [];
-  const searches = ["manga anime oferta", "figure anime promoção", "funko pop anime desconto"];
+  const searches = AMAZON_KEYWORDS;
 
   let browser: any;
   try {
@@ -628,30 +628,12 @@ async function collectViaCreatorsAPI(token: string, tag: string): Promise<RawPro
 // =====================================================================
 
 export async function collectFromAmazon(): Promise<RawProduct[]> {
-  const tag = process.env.AMAZON_AFFILIATE_TAG ?? process.env.AMAZON_PARTNER_TAG ?? "";
+  const tag =
+    process.env.AMAZON_AFFILIATE_TAG ??
+    process.env.AMAZON_PARTNER_TAG ??
+    "";
 
-  // 1. Tenta Creators API (OAuth)
-  const creatorToken = await getCreatorsToken();
-  if (creatorToken) {
-    logger.info("[Amazon] Usando Creators API (OAuth).");
-    const products = await collectViaCreatorsAPI(creatorToken, tag);
-    if (products.length > 0) return products;
-    logger.warn("[Amazon] Creators API retornou 0 produtos, tentando scraping.");
-  }
-
-  // 2. Tenta PA API v5 (legado)
-  const accessKey = process.env.AMAZON_ACCESS_KEY;
-  const secretKey = process.env.AMAZON_SECRET_KEY;
-  const partnerTag = process.env.AMAZON_PARTNER_TAG ?? tag;
-  const region = process.env.AMAZON_REGION ?? "us-east-1";
-
-  if (accessKey && secretKey && partnerTag) {
-    logger.info("[Amazon] Usando PAAPI v5.");
-    return collectViaAPI(accessKey, secretKey, partnerTag, region);
-  }
-
-  // 3. Scraping como fallback
-  logger.info("[Amazon] Usando scraping como fallback.");
+  logger.info("[Amazon] Usando scraping direto.");
   return collectViaScraping(tag);
 }
 
