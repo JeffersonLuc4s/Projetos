@@ -75,6 +75,8 @@ const BLOCKLIST = [
   "boneco de pelúcia", "pelúcia", "plush",
   "adesivo", "sticker", "pin", "botton",
   "máscara", "peruca",
+  "kindle", "ebook", "e-book", "digital", "versão digital",
+  "livro digital", "edição digital",
 ];
 
 export function isAnimeProduct(name: string): boolean {
