@@ -338,6 +338,19 @@ async function collectViaAPI(accessKey: string, secretKey: string, partnerTag: s
         const name = item.ItemInfo?.Title?.DisplayValue ?? "";
         if (!isAnimeProduct(name)) continue;
 
+        const lowerName = name.toLowerCase();
+
+        // 🚫 FILTRO KINDLE / DIGITAL
+        if (
+          lowerName.includes("kindle") ||
+          lowerName.includes("ebook") ||
+          lowerName.includes("e-book") ||
+          lowerName.includes("digital") ||
+          lowerName.includes("pdf")
+        ) {
+          continue;
+        }
+
         const listing = item.Offers?.Listings?.[0];
         const currentPrice = listing?.Price?.Amount ?? 0;
         const originalPrice = listing?.SavingBasis?.Amount ?? undefined;
