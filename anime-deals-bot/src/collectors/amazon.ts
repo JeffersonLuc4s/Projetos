@@ -279,8 +279,8 @@ async function collectViaScraping(tag: string): Promise<RawProduct[]> {
       await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 });
       await page.waitForTimeout(2000 + Math.random() * 2000);
 
-      const items = await page.$$eval('[data-component-type="s-search-result"]', (els) =>
-        els.slice(0, 10).map((el) => {
+      const items = await page.$$eval('[data-component-type="s-search-result"]', (els: any[]) =>
+        els.slice(0, 10).map((el: any) => {
           const name = el.querySelector("h2 span")?.textContent?.trim() ?? "";
 
           // Bloqueia Kindle/ebook pelo texto do card (ex: "Edição Kindle", "eBook")
@@ -307,7 +307,7 @@ async function collectViaScraping(tag: string): Promise<RawProduct[]> {
           const reviews = parseInt(reviewsText, 10) || 0;
 
           const asin = el.getAttribute("data-asin") ?? "";
-          const image = (el.querySelector(".s-image") as HTMLImageElement)?.src ?? "";
+          const image = (el.querySelector(".s-image") as any)?.src ?? "";
           const productUrl = `https://www.amazon.com.br/dp/${asin}`;
 
           const couponText = el.querySelector(".s-coupon-unclipped, [id*='coupon'], .a-color-success")?.textContent?.trim() ?? "";
