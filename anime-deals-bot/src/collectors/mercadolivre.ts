@@ -144,7 +144,7 @@ async function searchViaScraping(query: string): Promise<RawProduct[]> {
     });
     const page = await context.newPage();
 
-    const url = `https://lista.mercadolivre.com.br/${encodeURIComponent(query)}`;
+    const url = `https://lista.mercadolivre.com.br/${encodeURIComponent(query)}_FORMAT_Impresso`;
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 });
     await page.waitForTimeout(2000);
 
