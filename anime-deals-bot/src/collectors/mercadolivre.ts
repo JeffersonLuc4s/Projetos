@@ -118,7 +118,7 @@ function parseBRPrice(text: string): number {
   return parseFloat(`${match[1].replace(/\./g, "")}.${match[2]}`);
 }
 
-async function searchViaScraping(browser: any, query: string): Promise<RawProduct[]> {
+async function searchViaScraping(browser: any, query: string, onBatch?: (products: RawProduct[]) => Promise<void>): Promise<RawProduct[]> {
   const products: RawProduct[] = [];
 
   const context = await browser.newContext({
@@ -209,7 +209,7 @@ async function searchViaScraping(browser: any, query: string): Promise<RawProduc
       const separator = item.productUrl.includes("?") ? "&" : "?";
       const productUrl = affiliateId ? `${item.productUrl}${separator}matt_tool=${affiliateId}` : item.productUrl;
 
-      products.push({
+      const product: RawProduct = {
         source: "mercadolivre",
         source_id: item.mlbId,
         name: item.title,
@@ -221,7 +221,13 @@ async function searchViaScraping(browser: any, query: string): Promise<RawProduc
         image_url: item.image,
         product_url: productUrl,
         category: detectCategory(item.title),
-      });
+      };
+
+      if (onBatch) {
+        await onBatch([product]);
+      } else {
+        products.push(product);
+      }
     }
   } catch (err) {
     logger.error(`[ML Scraping] Erro na busca "${query}":`, err);
@@ -236,7 +242,7 @@ async function searchViaScraping(browser: any, query: string): Promise<RawProduc
 // Coletor principal
 // =====================================================================
 
-export async function collectFromMercadoLivre(): Promise<RawProduct[]> {
+export async function collectFromMercadoLivre(onBatch?: (products: RawProduct[]) => Promise<void>): Promise<RawProduct[]> {
   const token = await getAccessToken();
   const allProducts: RawProduct[] = [];
   const seen = new Set<string>();
@@ -512,11 +518,165 @@ export async function collectFromMercadoLivre(): Promise<RawProduct[]> {
       "A Grande Invasão Mongol",
       "Na Prisão Volume",
       "Nas Montanhas do Terror",
+      "Yona A Princesa do Alvorecer",
+      "xxxHolic",
+      "Fall in Love, You False Angels",
+      "Sob a Luz da Lua",
+      "Sailor Moon",
+      "Inuyasha",
+      "Skip & Loafer",
+      "O Cão que Guarda as Estrelas",
+      "Sangatsu no Lion",
+      "Your Name",
+      "Cardcaptor Sakura Clear Card Arc",
+      "Rosa de Versalhes",
+      "Fruits Basket",
+      "Garota à Beira-Mar",
+      "The Fable Big",
+      "Flying Witch",
+      "Chi's Sweet Home",
+      "Card Captor Sakura",
+      "Nana",
+      "Anohana",
+      "Quero Comer Seu Pâncreas",
+      "Orange",
+      "Suzume",
+      "Minha História de Amor com Yamada-kun Nível 999",
+      "Foi olhando para você…",
+      "Honey Lemon Soda",
+      "Meu Casamento Feliz",
+      "O Homem de Gelo e sua Fria Colega de Trabalho",
+      "Kamisama Hajimemashita",
+      "Sono Bisque Doll",
+      "Tamon's b-side",
+      "Entre o Profissional e o Pessoal",
+      "Kaisha To Shiseikatsu",
+      "Como Conheci a Minha Alma Gêmea",
+      "Aoharaido",
+      "Strobe Edge",
+      "Furi Fura",
+      "Hirayasumi",
+      "Vou me Apaixonar por Você Mesmo Assim",
+      "O Verão em que Hikaru Morreu",
+      "Kusuriya no Hitorigoto",
+      "Diários de uma Apotecária",
+      "Oshi no Ko",
+      "Não Mexa Comigo, Nagotoro",
+      "Ao no Flag",
+      "Komi Não Consegue se Comunicar",
+      "Gokushufudou",
+      "Os Filhos da Família Shiunji",
+      "Namorada de Aluguel",
+      "As Quíntuplas",
+      "We Never Learn",
+      "Kaguya-sama Love is War",
+      "Kaiju N.° 8",
+      "Konosuba",
+      "Wild Strawberry",
+      "A Casa Estranha",
+      "Re Cervin",
+      "Marry Grave",
+      "Quem é Sakamoto?",
+      "Man of Rust",
+      "Tougen Anki",
+      "Bakuon Rettou",
+      "Wistoria: Wand & Sword",
+      "Shangri-la Frontier",
+      "Lili-men",
+      "Salaryman Z",
+      "Gokurakugai",
+      "Lycoris Recoil",
+      "A Noiva do Clã Kyogane",
+      "Missão: Família Yozakura",
+      "Mieruko-chan",
+      "Goblin Slayer",
+      "Sword Art Online",
+      "A Voz do Silêncio",
+      "My Little Monster",
+      "Toradora!",
+      "No Game No Life",
+      "Um Sinal de Afeto",
+      "Perfect World",
+      "Amor Imaturo",
+      "5 Centímetros por Segundo",
+      "Nodame Cantabile",
+      "Girl Crush",
+      "The Fragrant Flower Blooms With Dignity",
+      "As Crianças da Minha Vida",
+      "Ela e o seu Gato",
+      "Sem Sorte Para Amar",
+      "A Pessoa Amada",
+      "O Íntimo de Mari",
+      "O Jardim das Palavras",
+      "O Florescer do Amor",
+      "Fireworks: Luzes no Céu",
+      "Vampeerz",
+      "GAP: A Teoria Rosa",
+      "O Fim das Minhas Noites de Solidão",
+      "Como Conquistar um Alfa",
+      "Pink Heart Jam",
+      "Doukyusei",
+      "Sirius: Estrelas Gêmeas",
+      "Yarichin Bitch Club",
+      "Meus Dias na Vila das Gaivotas",
+      "Os Dias de Folga do Vilão",
+      "Bênção do Oficial Celestial",
+      "O Sistema de Autopreservação do Vilão Desprezível",
+      "Meu Final Feliz",
+      "Fuja Comigo, Garota!",
+      "Madoka Magica",
+      "O Monstro Solitário e a Garota Cega",
+      "Hello, Melancholic!",
+      "What Does the Fox Say?",
+      "Me Apaixonei pela Vilã",
+      "A Nossa Refeição",
+      "Bloom Into You",
+      "A Noite Além da Janela Triangular",
+      "The Dangerous Convenience Store",
+      "Citrus Volume",
+      "Minha Experiência Lésbica com a Solidão",
+      "Diário da Minha Experiência Comigo Mesma",
+      "Minha Existência de Guerreira Errante",
+      "Minha Fuga Alcoólica da Realidade",
+      "Quero te Amar Até o Fim",
+      "10 Coisas Para Fazer Antes dos 40",
+      "Sempre é Verão com Você",
+      "Se Quiser, é só Pedir",
+      "Shimanami Tasogare",
+      "Porque o Amor Existe!",
+      "O Sétimo Ano do Amor Puro",
+      "Professor Yukimura & Kei",
+      "A Canção de Yoru & Asa",
+      "Pássaros que Cantam Não Podem Voar",
+      "Ten Count",
+      "Você me Deixa sem Fôlego",
+      "Ouço os Raios de Luz",
+      "Seven Days Volume",
+      "Eu Não Preciso de um Coração",
+      "Dakaichi: o Homem Mais Desejado do Ano",
+      "10 Dance",
+      "Sanctify",
+      "Cherry Magic",
+      "Given",
+      "Será Que Esse Amor é Irresistível?",
+      "Amor na Ponta da Língua",
+      "One Room Angel",
+      "New York, New York",
+      "A Estratégia do Imperador",
+      "Nosso Segredo Volume",
+      "Sleeping Dead Volume",
+      "No.6",
+      "Mo Dao Zu Shi",
+      "Navillera Volume",
+      "Tocando a sua Noite",
+      "Boy Meets Maria",
+      "Meu Vizinho Metaleiro",
+      "Sasaki e Miyano",
     ];
     for (const query of scrapeQueries) {
       try {
         logger.info(`[ML Scraping] Buscando: "${query}"`);
-        const products = await searchViaScraping(browser, query);
+        const products = await searchViaScraping(browser, query, onBatch);
         for (const p of products) {
           if (!seen.has(p.source_id)) { seen.add(p.source_id); allProducts.push(p); }
         }

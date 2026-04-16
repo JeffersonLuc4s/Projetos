@@ -7,25 +7,11 @@ import { buildAffiliateLink } from "../../affiliate/link-manager";
 import { upsertProduct, countPostsToday } from "../../database/queries";
 import { generateCopy } from "../../copy/copy-generator";
 import { getChannelIds } from "../../telegram/publisher";
+import { RawProduct } from "../../collectors/types";
 import { logger } from "../../utils/logger";
 
 async function processCollect(data: CollectJobData) {
   logger.info(`[CollectWorker] Iniciando coleta: source=${data.source}`);
-
-  const rawProducts = [];
-  const { source } = data;
-
-  if (source === "amazon" || source === "all") {
-    const items = await collectFromAmazon();
-    rawProducts.push(...items);
-    logger.info(`[CollectWorker] Amazon: ${items.length} produtos`);
-  }
-
-  if (source === "mercadolivre" || source === "all") {
-    const items = await collectFromMercadoLivre();
-    rawProducts.push(...items);
-    logger.info(`[CollectWorker] ML: ${items.length} produtos`);
-  }
 
   const channels = getChannelIds();
   if (channels.length === 0) {
@@ -36,52 +22,53 @@ async function processCollect(data: CollectJobData) {
   const maxPostsPerDay = Number(process.env.MAX_POSTS_PER_DAY ?? 10);
   let publishedCount = 0;
 
-  for (const channelId of channels) {
-    const todayCount = await countPostsToday(channelId);
-    const remaining = maxPostsPerDay - todayCount;
+  // Chamado a cada lote de produtos encontrados — publica na hora
+  async function onBatch(batch: RawProduct[]) {
+    for (const channelId of channels) {
+      const todayCount = await countPostsToday(channelId);
+      if (todayCount >= maxPostsPerDay) continue;
 
-    if (remaining <= 0) {
-      logger.info(`[CollectWorker] Canal ${channelId} atingiu limite hoje.`);
-      continue;
-    }
+      const filtered = await filterProducts(batch, channelId);
+      const ranked = scoreAndRank(filtered);
 
-    const filtered = await filterProducts(rawProducts, channelId);
-    const ranked = scoreAndRank(filtered);
-    const topProducts = ranked.slice(0, remaining);
+      for (const product of ranked) {
+        const todayNow = await countPostsToday(channelId);
+        if (todayNow >= maxPostsPerDay) break;
 
-    logger.info(`[CollectWorker] ${topProducts.length} produtos para publicar no canal ${channelId}`);
+        const { affUrl, shortUrl } = await buildAffiliateLink(product.product_url, product.source);
+        const productId = await upsertProduct({ ...product, category: product.category ?? "outros", aff_url: affUrl, short_url: shortUrl });
+        const copyText = await generateCopy(product);
 
-    let delay = 0;
-    for (const product of topProducts) {
-      const { affUrl, shortUrl } = await buildAffiliateLink(product.product_url, product.source);
+        await addPublishJob({
+          productId,
+          channelId,
+          copyText,
+          affiliateUrl: shortUrl || affUrl,
+          product: {
+            name: product.name,
+            image_url: product.image_url,
+            score_label: product.score_label,
+            score: product.score,
+          },
+        });
 
-      const productId = await upsertProduct({
-        ...product,
-        aff_url: affUrl,
-        short_url: shortUrl,
-      });
-
-      const copyText = await generateCopy(product);
-
-      await addPublishJob({
-        productId,
-        channelId,
-        copyText,
-        affiliateUrl: shortUrl || affUrl,
-        product: {
-          name: product.name,
-          image_url: product.image_url,
-          score_label: product.score_label,
-          score: product.score,
-        },
-      }, delay);
-
-      delay += 60_000; // 1 minuto entre posts
-      publishedCount++;
+        publishedCount++;
+        logger.info(`[CollectWorker] Publicando imediatamente: "${product.name.slice(0, 40)}"`);
+      }
     }
   }
 
-  logger.info(`[CollectWorker] Concluído. ${publishedCount} posts enfileirados.`);
+  const { source } = data;
+
+  if (source === "amazon" || source === "all") {
+    await collectFromAmazon(onBatch);
+  }
+
+  if (source === "mercadolivre" || source === "all") {
+    await collectFromMercadoLivre(onBatch);
+  }
+
+  logger.info(`[CollectWorker] Concluído. ${publishedCount} posts publicados.`);
 }
 
 export function startCollectWorker() {
