@@ -1,66 +1,5 @@
-/**
- * Coletor da Amazon.
- *
- * Estratégia dupla:
- * 1. Amazon Product Advertising API v5 (PAAPI) se credenciais configuradas
- * 2. Scraping leve com Playwright como fallback
- *
- * PAAPI requer aprovação prévia em:
- * https://affiliate-program.amazon.com.br/
- */
-
-import axios from "axios";
-import crypto from "crypto";
 import { RawProduct, isAnimeProduct, detectCategory } from "./types";
 import { logger } from "../utils/logger";
-
-// =====================================================================
-// AMAZON PAAPI v5
-// =====================================================================
-
-function signedHeaders(
-  accessKey: string,
-  secretKey: string,
-  partnerTag: string,
-  payload: object,
-  region: string
-) {
-  const endpoint = `webservices.amazon.com.br`;
-  const path = `/paapi5/searchitems`;
-  const host = endpoint;
-  const datetime = new Date().toISOString().replace(/[:-]/g, "").replace(/\.\d{3}/, "");
-  const date = datetime.slice(0, 8);
-
-  const bodyStr = JSON.stringify(payload);
-  const bodyHash = crypto.createHash("sha256").update(bodyStr).digest("hex");
-
-  const canonicalHeaders = `content-encoding:amz-1.0\ncontent-type:application/json; charset=utf-8\nhost:${host}\nx-amz-date:${datetime}\nx-amz-target:com.amazon.paapi5.v1.ProductAdvertisingAPIv1.SearchItems\n`;
-  const signedHeaderList = "content-encoding;content-type;host;x-amz-date;x-amz-target";
-
-  const canonicalRequest = `POST\n${path}\n\n${canonicalHeaders}\n${signedHeaderList}\n${bodyHash}`;
-  const credentialScope = `${date}/${region}/ProductAdvertisingAPI/aws4_request`;
-  const stringToSign = `AWS4-HMAC-SHA256\n${datetime}\n${credentialScope}\n${crypto.createHash("sha256").update(canonicalRequest).digest("hex")}`;
-
-  const hmacKey = (key: string | Buffer, data: string) =>
-    crypto.createHmac("sha256", key).update(data).digest();
-
-  const signingKey = hmacKey(
-    hmacKey(hmacKey(hmacKey(`AWS4${secretKey}`, date), region), "ProductAdvertisingAPI"),
-    "aws4_request"
-  );
-  const signature = hmacKey(signingKey, stringToSign).toString("hex");
-
-  const authHeader = `AWS4-HMAC-SHA256 Credential=${accessKey}/${credentialScope}, SignedHeaders=${signedHeaderList}, Signature=${signature}`;
-
-  return {
-    "Content-Encoding": "amz-1.0",
-    "Content-Type": "application/json; charset=utf-8",
-    Host: host,
-    "X-Amz-Date": datetime,
-    "X-Amz-Target": "com.amazon.paapi5.v1.ProductAdvertisingAPIv1.SearchItems",
-    Authorization: authHeader,
-  };
-}
 
 const AMAZON_KEYWORDS = [
   "Haikyu!!",
@@ -301,99 +240,7 @@ const AMAZON_KEYWORDS = [
   "Nas Montanhas do Terror",
 ];
 
-async function collectViaAPI(accessKey: string, secretKey: string, partnerTag: string, region: string): Promise<RawProduct[]> {
-  const products: RawProduct[] = [];
-
-  for (const keyword of AMAZON_KEYWORDS) {
-    const payload = {
-      PartnerTag: partnerTag,
-      PartnerType: "Associates",
-      Marketplace: "www.amazon.com.br",
-      Keywords: keyword,
-      SearchIndex: "All",
-      Resources: [
-        "Images.Primary.Large",
-        "ItemInfo.Title",
-        "Offers.Listings.Price",
-        "Offers.Listings.SavingBasis",
-        "Offers.Listings.DeliveryInfo.IsPrimeEligible",
-        "CustomerReviews.Count",
-        "CustomerReviews.StarRating",
-        "ItemInfo.ByLineInfo",
-      ],
-      ItemCount: 10,
-    };
-
-    const headers = signedHeaders(accessKey, secretKey, partnerTag, payload, region);
-
-    try {
-      const res = await axios.post(
-        `https://webservices.amazon.com.br/paapi5/searchitems`,
-        payload,
-        { headers, timeout: 10000 }
-      );
-
-      const items = res.data?.SearchResult?.Items ?? [];
-      for (const item of items) {
-        const name = item.ItemInfo?.Title?.DisplayValue ?? "";
-        if (!isAnimeProduct(name)) continue;
-
-        const lowerName = name.toLowerCase();
-
-        // 🚫 FILTRO KINDLE / DIGITAL
-        if (
-          lowerName.includes("kindle") ||
-          lowerName.includes("ebook") ||
-          lowerName.includes("e-book") ||
-          lowerName.includes("digital") ||
-          lowerName.includes("pdf")
-        ) {
-          continue;
-        }
-
-        const listing = item.Offers?.Listings?.[0];
-        const currentPrice = listing?.Price?.Amount ?? 0;
-        const originalPrice = listing?.SavingBasis?.Amount ?? undefined;
-        const discountPct = originalPrice
-          ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100)
-          : 0;
-
-        const rating = item.CustomerReviews?.StarRating?.Value ?? 0;
-        const reviews = item.CustomerReviews?.Count ?? 0;
-        const image = item.Images?.Primary?.Large?.URL ?? undefined;
-        const url = item.DetailPageURL ?? "";
-
-        // Adiciona tag de afiliado (PAAPI já insere automaticamente via PartnerTag)
-        products.push({
-          source: "amazon",
-          source_id: item.ASIN,
-          name,
-          current_price: currentPrice,
-          original_price: originalPrice,
-          discount_pct: discountPct,
-          rating,
-          reviews,
-          image_url: image,
-          product_url: url,
-          category: detectCategory(name),
-        });
-      }
-    } catch (err) {
-      logger.error(`[Amazon PAAPI] Erro na query "${keyword}":`, err);
-    }
-
-    await sleep(1100); // PAAPI: 1 req/s
-  }
-
-  return products;
-}
-
-// =====================================================================
-// SCRAPING LEVE (fallback via Playwright)
-// =====================================================================
-
 async function collectViaScraping(tag: string): Promise<RawProduct[]> {
-  // Importação lazy para não travar se Playwright não estiver instalado
   let chromium: any;
   try {
     const pw = await import("playwright");
@@ -410,7 +257,6 @@ async function collectViaScraping(tag: string): Promise<RawProduct[]> {
   ];
 
   const products: RawProduct[] = [];
-  const searches = AMAZON_KEYWORDS;
 
   let browser: any;
   try {
@@ -420,7 +266,7 @@ async function collectViaScraping(tag: string): Promise<RawProduct[]> {
     return [];
   }
 
-  for (const query of searches) {
+  for (const query of AMAZON_KEYWORDS) {
     const context = await browser.newContext({
       userAgent: USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)],
       locale: "pt-BR",
@@ -429,7 +275,7 @@ async function collectViaScraping(tag: string): Promise<RawProduct[]> {
 
     try {
       const page = await context.newPage();
-      const url = `https://www.amazon.com.br/s?k=${encodeURIComponent(query)}&s=price-asc-rank`;
+      const url = `https://www.amazon.com.br/s?k=${encodeURIComponent(query)}&i=stripbooks&s=price-asc-rank`;
       await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 });
       await page.waitForTimeout(2000 + Math.random() * 2000);
 
@@ -454,7 +300,6 @@ async function collectViaScraping(tag: string): Promise<RawProduct[]> {
           const image = (el.querySelector(".s-image") as HTMLImageElement)?.src ?? "";
           const productUrl = `https://www.amazon.com.br/dp/${asin}`;
 
-          // Detecção de cupom (ex: "Economize R$20" ou "cupom de 10%")
           const couponText = el.querySelector(".s-coupon-unclipped, [id*='coupon'], .a-color-success")?.textContent?.trim() ?? "";
           let couponValue: number | undefined;
           let couponType: "fixed" | "percent" | undefined;
@@ -516,129 +361,6 @@ async function collectViaScraping(tag: string): Promise<RawProduct[]> {
   await browser.close();
   return products;
 }
-
-// =====================================================================
-// AMAZON CREATORS API (OAuth 2.0)
-// =====================================================================
-
-let creatorTokenCache: { token: string; expiresAt: number } | null = null;
-
-async function getCreatorsToken(): Promise<string | null> {
-  const clientId = process.env.AMAZON_CLIENT_ID;
-  const clientSecret = process.env.AMAZON_CLIENT_SECRET;
-  if (!clientId || !clientSecret) return null;
-
-  if (creatorTokenCache && Date.now() < creatorTokenCache.expiresAt) {
-    return creatorTokenCache.token;
-  }
-
-  try {
-    const res = await axios.post(
-      "https://api.amazon.com/auth/o2/token",
-      {
-        grant_type: "client_credentials",
-        client_id: clientId,
-        client_secret: clientSecret,
-        scope: "creatorsapi::default",
-      },
-      {
-        headers: { "Content-Type": "application/json" },
-        timeout: 10000,
-      }
-    );
-    const token = res.data.access_token as string;
-    const expiresIn = ((res.data.expires_in as number) || 3600) * 1000;
-    creatorTokenCache = { token, expiresAt: Date.now() + expiresIn - 60_000 };
-    logger.info(`[Amazon] Token Creators API obtido com sucesso.`);
-    return token;
-  } catch (err: any) {
-    const errData = err?.response?.data;
-    logger.warn(`[Amazon] Creators API token falhou: ${JSON.stringify(errData) ?? err?.message}. Usando scraping.`);
-    return null;
-  }
-}
-
-async function collectViaCreatorsAPI(token: string, tag: string): Promise<RawProduct[]> {
-  const products: RawProduct[] = [];
-
-  const keywords = [
-    "mangá naruto", "figure anime", "funko pop anime",
-    "dragon ball figure", "one piece figure", "demon slayer manga",
-    "jujutsu kaisen figure", "my hero academia figure",
-  ];
-
-  for (const keyword of keywords) {
-    try {
-      const payload = {
-        partnerTag: tag,
-        partnerType: "Associates",
-        keywords: keyword,
-        searchIndex: "All",
-        resources: [
-          "images.primary.large",
-          "itemInfo.title",
-          "offersV2.listings.price",
-          "offersV2.listings.dealDetails",
-          "customerReviews.count",
-          "customerReviews.starRating",
-        ],
-        itemCount: 10,
-      };
-
-      const res = await axios.post(
-        "https://creatorsapi.amazon/catalog/v1/searchItems",
-        payload,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-            "x-marketplace": "www.amazon.com.br",
-          },
-          timeout: 10000,
-        }
-      );
-
-      // Resposta no formato Creators API v3: itemsResult.items[]
-      const items = res.data?.itemsResult?.items ?? [];
-      for (const item of items) {
-        const name = item.itemInfo?.title?.displayValue ?? "";
-        if (!isAnimeProduct(name)) continue;
-
-        const listing = item.offersV2?.listings?.[0];
-        const currentPrice = listing?.price?.amount ?? 0;
-        const originalPrice = listing?.dealDetails?.originalPrice?.amount ?? undefined;
-        const discountPct = originalPrice && originalPrice > currentPrice
-          ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100)
-          : 0;
-
-        products.push({
-          source: "amazon",
-          source_id: item.asin ?? "",
-          name,
-          current_price: currentPrice,
-          original_price: originalPrice,
-          discount_pct: discountPct,
-          rating: item.customerReviews?.starRating?.value ?? 0,
-          reviews: item.customerReviews?.count ?? 0,
-          image_url: item.images?.primary?.large?.url ?? undefined,
-          // detailPageURL já vem com a tag de afiliado embutida
-          product_url: item.detailPageURL ?? `https://www.amazon.com.br/dp/${item.asin}?tag=${tag}`,
-          category: detectCategory(name),
-        });
-      }
-    } catch (err: any) {
-      logger.error(`[Amazon Creators API] Erro "${keyword}": ${JSON.stringify(err?.response?.data) ?? err?.message}`);
-    }
-    await sleep(1000);
-  }
-
-  logger.info(`[Amazon Creators API] ${products.length} produtos coletados.`);
-  return products;
-}
-
-// =====================================================================
-// ENTRY POINT
-// =====================================================================
 
 export async function collectFromAmazon(): Promise<RawProduct[]> {
   const tag =

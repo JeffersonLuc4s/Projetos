@@ -54,10 +54,15 @@ class SimpleQueue<T> {
       await sleep(remaining);
     }
 
+    const JOB_TIMEOUT_MS = 55 * 60 * 1000; // 55 minutos
+
     let attempt = 0;
     while (attempt < this.maxRetries) {
       try {
-        await this.handler(job.data);
+        const timeout = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error(`Job timeout após ${JOB_TIMEOUT_MS / 60000} min`)), JOB_TIMEOUT_MS)
+        );
+        await Promise.race([this.handler(job.data), timeout]);
         break;
       } catch (err) {
         attempt++;
