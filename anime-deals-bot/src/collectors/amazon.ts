@@ -282,6 +282,16 @@ async function collectViaScraping(tag: string): Promise<RawProduct[]> {
       const items = await page.$$eval('[data-component-type="s-search-result"]', (els) =>
         els.slice(0, 10).map((el) => {
           const name = el.querySelector("h2 span")?.textContent?.trim() ?? "";
+
+          // Bloqueia Kindle/ebook pelo texto do card (ex: "Edição Kindle", "eBook")
+          const fullText = el.textContent?.toLowerCase() ?? "";
+          if (
+            fullText.includes("edição kindle") ||
+            fullText.includes("edicao kindle") ||
+            fullText.includes("kindle edition") ||
+            fullText.includes("ebook kindle") ||
+            name.toLowerCase().includes("kindle")
+          ) return null;
           const priceWhole = el.querySelector(".a-price-whole")?.textContent?.replace(/[.,]/g, "").trim() ?? "0";
           const priceFrac = el.querySelector(".a-price-fraction")?.textContent?.trim() ?? "00";
           const currentPrice = parseFloat(`${priceWhole}.${priceFrac}`);
@@ -320,7 +330,7 @@ async function collectViaScraping(tag: string): Promise<RawProduct[]> {
       );
 
       for (const item of items) {
-        if (!item.asin || !isAnimeProduct(item.name)) continue;
+        if (!item || !item.asin || !isAnimeProduct(item.name)) continue;
         const discountPct = item.originalPrice
           ? Math.round(((item.originalPrice - item.currentPrice) / item.originalPrice) * 100)
           : 0;
