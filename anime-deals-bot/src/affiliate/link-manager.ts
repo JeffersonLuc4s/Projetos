@@ -50,25 +50,15 @@ export function addMLAffiliateId(url: string, affiliateId?: string): string {
 const shortUrlCache = new Map<string, string>();
 
 export async function shortenUrl(url: string): Promise<string> {
-  const token = process.env.BITLY_TOKEN;
-  if (!token) return url;
-
   if (shortUrlCache.has(url)) return shortUrlCache.get(url)!;
 
   try {
-    const res = await axios.post(
-      "https://api-ssl.bitly.com/v4/shorten",
-      { long_url: url },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        timeout: 5000,
-      }
-    );
+    const res = await axios.get("https://is.gd/create.php", {
+      params: { format: "json", url },
+      timeout: 5000,
+    });
 
-    const short = res.data.link as string;
+    const short = res.data.shorturl as string;
     shortUrlCache.set(url, short);
     return short;
   } catch (err) {
