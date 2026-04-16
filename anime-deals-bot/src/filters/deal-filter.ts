@@ -32,6 +32,7 @@ export async function filterProducts(
 
     // Bloqueia digital/kindle independente de qualquer outro filtro
     const nameLower = product.name.toLowerCase();
+    logger.info(`[Filter] Verificando: "${product.name.slice(0, 60)}" (${product.source})`);
     if (
       nameLower.includes("kindle") ||
       nameLower.includes("ebook") ||
@@ -40,7 +41,7 @@ export async function filterProducts(
       nameLower.includes("edição digital") ||
       nameLower.includes("versão digital")
     ) {
-      logger.debug(`[Filter] ${product.name.slice(0, 40)} — bloqueado (digital)`);
+      logger.info(`[Filter] BLOQUEADO (digital): "${product.name.slice(0, 60)}"`);
       continue;
     }
 
