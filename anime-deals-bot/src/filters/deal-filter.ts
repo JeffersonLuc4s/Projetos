@@ -45,11 +45,6 @@ export async function filterProducts(
       continue;
     }
 
-    // Preço mínimo para Amazon — Kindle raramente passa de R$20, físico raramente fica abaixo de R$12
-    if (product.source === "amazon" && product.current_price < 12) {
-      logger.info(`[Filter] Bloqueado (preço suspeito R$${product.current_price}): "${product.name.slice(0, 50)}"`);
-      continue;
-    }
 
     // Anti-spam
     const alreadyPosted = await wasPostedRecently(pid, channelId, config.antiSpamDays);
