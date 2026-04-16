@@ -283,14 +283,20 @@ async function collectViaScraping(tag: string): Promise<RawProduct[]> {
         els.slice(0, 10).map((el: any) => {
           const name = el.querySelector("h2 span")?.textContent?.trim() ?? "";
 
-          // Bloqueia Kindle/ebook pelo texto do card (ex: "Edição Kindle", "eBook")
+          // Bloqueia Kindle/ebook pelo texto do card
           const fullText = el.textContent?.toLowerCase() ?? "";
+          const subtitleText = (
+            el.querySelector(".a-size-medium.a-color-secondary") ??
+            el.querySelector(".a-size-base.a-color-secondary") ??
+            el.querySelector(".a-size-mini.a-color-secondary") ??
+            el.querySelector("[class*='subtitle']")
+          )?.textContent?.toLowerCase() ?? "";
+
           if (
-            fullText.includes("edição kindle") ||
-            fullText.includes("edicao kindle") ||
-            fullText.includes("kindle edition") ||
-            fullText.includes("ebook kindle") ||
-            name.toLowerCase().includes("kindle")
+            fullText.includes("kindle") ||
+            subtitleText.includes("kindle") ||
+            name.toLowerCase().includes("kindle") ||
+            name.toLowerCase().includes("english edition")
           ) return null;
           const priceWhole = el.querySelector(".a-price-whole")?.textContent?.replace(/[.,]/g, "").trim() ?? "0";
           const priceFrac = el.querySelector(".a-price-fraction")?.textContent?.trim() ?? "00";

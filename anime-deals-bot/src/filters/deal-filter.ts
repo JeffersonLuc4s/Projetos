@@ -32,16 +32,22 @@ export async function filterProducts(
 
     // Bloqueia digital/kindle independente de qualquer outro filtro
     const nameLower = product.name.toLowerCase();
-    logger.info(`[Filter] Verificando: "${product.name.slice(0, 60)}" (${product.source})`);
     if (
       nameLower.includes("kindle") ||
       nameLower.includes("ebook") ||
       nameLower.includes("e-book") ||
+      nameLower.includes("english edition") ||
       nameLower.includes("livro digital") ||
       nameLower.includes("edição digital") ||
       nameLower.includes("versão digital")
     ) {
-      logger.info(`[Filter] BLOQUEADO (digital): "${product.name.slice(0, 60)}"`);
+      logger.debug(`[Filter] Bloqueado (digital): "${product.name.slice(0, 60)}"`);
+      continue;
+    }
+
+    // Preço mínimo para Amazon — Kindle raramente passa de R$20, físico raramente fica abaixo de R$12
+    if (product.source === "amazon" && product.current_price < 12) {
+      logger.info(`[Filter] Bloqueado (preço suspeito R$${product.current_price}): "${product.name.slice(0, 50)}"`);
       continue;
     }
 
