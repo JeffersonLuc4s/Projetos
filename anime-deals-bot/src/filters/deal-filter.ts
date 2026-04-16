@@ -30,6 +30,20 @@ export async function filterProducts(
   for (const product of products) {
     const pid = productId(product.source, product.source_id);
 
+    // Bloqueia digital/kindle independente de qualquer outro filtro
+    const nameLower = product.name.toLowerCase();
+    if (
+      nameLower.includes("kindle") ||
+      nameLower.includes("ebook") ||
+      nameLower.includes("e-book") ||
+      nameLower.includes("livro digital") ||
+      nameLower.includes("edição digital") ||
+      nameLower.includes("versão digital")
+    ) {
+      logger.debug(`[Filter] ${product.name.slice(0, 40)} — bloqueado (digital)`);
+      continue;
+    }
+
     // Anti-spam
     const alreadyPosted = await wasPostedRecently(pid, channelId, config.antiSpamDays);
     if (alreadyPosted) {
