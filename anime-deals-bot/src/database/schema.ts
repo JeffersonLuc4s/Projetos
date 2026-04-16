@@ -11,7 +11,14 @@ export let db: Client;
 
 export function getDb(): Client {
   if (!db) {
-    db = createClient({ url: `file:${DB_PATH}` });
+    if (process.env.TURSO_URL) {
+      db = createClient({
+        url: process.env.TURSO_URL,
+        authToken: process.env.TURSO_TOKEN,
+      });
+    } else {
+      db = createClient({ url: `file:${DB_PATH}` });
+    }
   }
   return db;
 }
