@@ -118,30 +118,15 @@ function parseBRPrice(text: string): number {
   return parseFloat(`${match[1].replace(/\./g, "")}.${match[2]}`);
 }
 
-async function searchViaScraping(query: string): Promise<RawProduct[]> {
-  let chromium: any;
-  try {
-    const pw = await import("playwright");
-    chromium = pw.chromium;
-  } catch {
-    return [];
-  }
-
-  let browser: any;
-  try {
-    browser = await chromium.launch({ headless: true });
-  } catch {
-    logger.warn("[ML Scraping] Browser não disponível.");
-    return [];
-  }
-
+async function searchViaScraping(browser: any, query: string): Promise<RawProduct[]> {
   const products: RawProduct[] = [];
 
+  const context = await browser.newContext({
+    userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    locale: "pt-BR",
+  });
+
   try {
-    const context = await browser.newContext({
-      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-      locale: "pt-BR",
-    });
     const page = await context.newPage();
 
     const url = `https://lista.mercadolivre.com.br/${encodeURIComponent(query)}_FORMAT_Impresso`;
@@ -149,15 +134,13 @@ async function searchViaScraping(query: string): Promise<RawProduct[]> {
     await page.waitForTimeout(2000);
 
     const items = await page.$$eval(".ui-search-layout__item", (els: any[]) =>
-      els.slice(0, 10).map((el) => {
+      els.slice(0, 10).map((el: any) => {
         const title = el.querySelector(".poly-component__title")?.textContent?.trim() ?? "";
 
-        // Preço atual: usa fraction + cents separados (mais robusto que parsear o textContent)
         const currentFraction = el.querySelector(".poly-price__current .andes-money-amount__fraction")?.textContent?.trim() ?? "0";
         const currentCents = el.querySelector(".poly-price__current .andes-money-amount__cents")?.textContent?.trim() ?? "00";
         const currentPriceText = `R$${currentFraction},${currentCents}`;
 
-        // Preço original: fica na tag <s> com classe andes-money-amount--previous
         const origEl = el.querySelector("s.andes-money-amount--previous");
         let originalPriceText = "";
         if (origEl) {
@@ -166,20 +149,15 @@ async function searchViaScraping(query: string): Promise<RawProduct[]> {
           originalPriceText = origCents ? `R$${origFraction},${origCents}` : `R$${origFraction}`;
         }
 
-        // Desconto em % direto do texto (ex: "5% OFF", "10% OFF no Pix")
         const discountRawText = el.querySelector("[class*='discount']")?.textContent?.trim() ?? "";
         const discountPctMatch = discountRawText.match(/(\d+)%/);
         const discountPctDirect = discountPctMatch ? parseInt(discountPctMatch[1], 10) : 0;
 
-        const imgEl = el.querySelector("img.poly-component__picture") as HTMLImageElement;
-        const linkEl = el.querySelector("a.poly-component__title") as HTMLAnchorElement;
+        const imgEl = el.querySelector("img.poly-component__picture") as any;
+        const linkEl = el.querySelector("a.poly-component__title") as any;
         const href = linkEl?.href ?? "";
 
-        // ML tem 3 formatos de URL diferentes:
-        // 1. www.mercadolivre.com.br/.../p/MLB123  → produto agrupado, ID no path
-        // 2. produto.mercadolivre.com.br/MLB-123-nome_JM → item avulso, ID no path
-        // 3. www.mercadolivre.com.br/.../up/MLBU123#...wid=MLB123 → vitrine, ID no wid
-        const cleanHref = href.split("#")[0]; // remove fragmento #...
+        const cleanHref = href.split("#")[0];
         let mlbId = "";
         let productUrl = "";
 
@@ -192,7 +170,7 @@ async function searchViaScraping(query: string): Promise<RawProduct[]> {
           productUrl = `https://www.mercadolivre.com.br/p/${mlbId}`;
         } else if (m2) {
           mlbId = `MLB${m2[1]}`;
-          productUrl = cleanHref.split("?")[0]; // URL limpa sem query params
+          productUrl = cleanHref.split("?")[0];
         } else if (m3) {
           mlbId = m3[1];
           productUrl = `https://www.mercadolivre.com.br/p/${mlbId}`;
@@ -228,7 +206,6 @@ async function searchViaScraping(query: string): Promise<RawProduct[]> {
         ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100)
         : (item.discountPctDirect ?? 0);
 
-      // Adiciona tag de afiliado na URL já extraída corretamente
       const separator = item.productUrl.includes("?") ? "&" : "?";
       const productUrl = affiliateId ? `${item.productUrl}${separator}matt_tool=${affiliateId}` : item.productUrl;
 
@@ -246,12 +223,10 @@ async function searchViaScraping(query: string): Promise<RawProduct[]> {
         category: detectCategory(item.title),
       });
     }
-
-    await context.close();
   } catch (err) {
     logger.error(`[ML Scraping] Erro na busca "${query}":`, err);
   } finally {
-    await browser.close();
+    await context.close();
   }
 
   return products;
@@ -282,6 +257,24 @@ export async function collectFromMercadoLivre(): Promise<RawProduct[]> {
     }
   } else {
     logger.info("[ML] Sem credenciais OAuth. Usando scraping do site.");
+
+    let chromium: any;
+    try {
+      const pw = await import("playwright");
+      chromium = pw.chromium;
+    } catch {
+      logger.warn("[ML Scraping] Playwright não disponível.");
+      return allProducts;
+    }
+
+    let browser: any;
+    try {
+      browser = await chromium.launch({ headless: true });
+    } catch {
+      logger.warn("[ML Scraping] Browser não disponível.");
+      return allProducts;
+    }
+
     const scrapeQueries = [
       "Haikyu!!",
       "Haikyu!",
@@ -523,7 +516,7 @@ export async function collectFromMercadoLivre(): Promise<RawProduct[]> {
     for (const query of scrapeQueries) {
       try {
         logger.info(`[ML Scraping] Buscando: "${query}"`);
-        const products = await searchViaScraping(query);
+        const products = await searchViaScraping(browser, query);
         for (const p of products) {
           if (!seen.has(p.source_id)) { seen.add(p.source_id); allProducts.push(p); }
         }
@@ -532,6 +525,8 @@ export async function collectFromMercadoLivre(): Promise<RawProduct[]> {
         logger.error(`[ML Scraping] Erro:`, err);
       }
     }
+
+    await browser.close();
   }
 
   logger.info(`[ML] Total coletado: ${allProducts.length} produtos`);
