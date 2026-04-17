@@ -39,7 +39,12 @@ export async function filterProducts(
       nameLower.includes("english edition") ||
       nameLower.includes("livro digital") ||
       nameLower.includes("edição digital") ||
-      nameLower.includes("versão digital")
+      nameLower.includes("versão digital") ||
+      nameLower.includes("audiolivro") ||
+      nameLower.includes("audio livro") ||
+      nameLower.includes("audiolibro") ||
+      nameLower.includes("versão integral") ||
+      nameLower.includes("versão completa")
     ) {
       logger.debug(`[Filter] Bloqueado (digital): "${product.name.slice(0, 60)}"`);
       continue;

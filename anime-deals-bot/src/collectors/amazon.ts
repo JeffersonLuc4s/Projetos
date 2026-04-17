@@ -458,7 +458,11 @@ async function collectViaScraping(tag: string, onBatch?: (products: RawProduct[]
             fullText.includes("kindle") ||
             subtitleText.includes("kindle") ||
             name.toLowerCase().includes("kindle") ||
-            name.toLowerCase().includes("english edition")
+            name.toLowerCase().includes("english edition") ||
+            name.toLowerCase().includes("audiolivro") ||
+            name.toLowerCase().includes("versão integral") ||
+            subtitleText.includes("audiolivro") ||
+            subtitleText.includes("versão integral")
           ) return null;
 
           const isHardcover = subtitleText.includes("capa dura");

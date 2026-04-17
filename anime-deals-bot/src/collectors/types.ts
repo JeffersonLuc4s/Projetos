@@ -138,6 +138,7 @@ const BLOCKLIST = [
   "máscara", "peruca",
   "kindle", "ebook", "e-book", "digital", "versão digital",
   "livro digital", "edição digital", "english edition",
+  "audiolivro", "audio livro", "audiolibro", "versão integral", "versão completa",
 ];
 
 // Lista de autores de livros (fantasy, terror, clássicos, true crime, etc.)
