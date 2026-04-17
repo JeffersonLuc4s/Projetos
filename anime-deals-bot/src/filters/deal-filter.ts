@@ -16,7 +16,7 @@ export const defaultConfig: FilterConfig = {
 function minDiscountForCategory(category?: string): number {
   if (category === "manga") return 50;
   if (category === "figure") return 50;
-  if (category === "livro") return 60;
+  if (category === "livro") return 70;
   return 50; // padrão para outros
 }
 

@@ -7,7 +7,7 @@
  */
 
 import axios from "axios";
-import { RawProduct, isAnimeProduct, detectCategory } from "./types";
+import { RawProduct, isAnimeProduct, isBookProduct, detectCategory, BOOK_AUTHOR_KEYWORDS } from "./types";
 import { logger } from "../utils/logger";
 
 const ML_API = "https://api.mercadolibre.com";
@@ -118,7 +118,8 @@ function parseBRPrice(text: string): number {
   return parseFloat(`${match[1].replace(/\./g, "")}.${match[2]}`);
 }
 
-async function searchViaScraping(browser: any, query: string, onBatch?: (products: RawProduct[]) => Promise<void>): Promise<RawProduct[]> {
+async function searchViaScraping(browser: any, query: string, onBatch?: (products: RawProduct[]) => Promise<void>, filterFn?: (name: string) => boolean, forcedCategory?: string): Promise<RawProduct[]> {
+  const activeFilter = filterFn ?? isAnimeProduct;
   const products: RawProduct[] = [];
 
   const context = await browser.newContext({
@@ -196,7 +197,7 @@ async function searchViaScraping(browser: any, query: string, onBatch?: (product
     const affiliateId = process.env.MERCADOLIVRE_AFFILIATE_ID ?? "";
 
     for (const item of items) {
-      if (!item.mlbId || !item.currentPriceText || !isAnimeProduct(item.title)) continue;
+      if (!item.mlbId || !item.currentPriceText || !activeFilter(item.title)) continue;
 
       const currentPrice = parseBRPrice(item.currentPriceText);
       const originalPrice = item.originalPriceText ? parseBRPrice(item.originalPriceText) : undefined;
@@ -220,7 +221,7 @@ async function searchViaScraping(browser: any, query: string, onBatch?: (product
         reviews: item.reviews,
         image_url: item.image,
         product_url: productUrl,
-        category: detectCategory(item.title),
+        category: forcedCategory ?? detectCategory(item.title),
       };
 
       if (onBatch) {
@@ -677,6 +678,20 @@ export async function collectFromMercadoLivre(onBatch?: (products: RawProduct[])
       try {
         logger.info(`[ML Scraping] Buscando: "${query}"`);
         const products = await searchViaScraping(browser, query, onBatch);
+        for (const p of products) {
+          if (!seen.has(p.source_id)) { seen.add(p.source_id); allProducts.push(p); }
+        }
+        await sleep(3000);
+      } catch (err) {
+        logger.error(`[ML Scraping] Erro:`, err);
+      }
+    }
+
+    // Loop de autores de livros
+    for (const query of BOOK_AUTHOR_KEYWORDS) {
+      try {
+        logger.info(`[ML Scraping] Buscando livro: "${query}"`);
+        const products = await searchViaScraping(browser, query, onBatch, isBookProduct, "livro");
         for (const p of products) {
           if (!seen.has(p.source_id)) { seen.add(p.source_id); allProducts.push(p); }
         }

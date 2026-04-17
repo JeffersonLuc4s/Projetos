@@ -1,4 +1,4 @@
-import { RawProduct, isAnimeProduct, detectCategory } from "./types";
+import { RawProduct, isAnimeProduct, isBookProduct, detectCategory, BOOK_AUTHOR_KEYWORDS } from "./types";
 import { logger } from "../utils/logger";
 
 const AMAZON_KEYWORDS = [
@@ -422,7 +422,13 @@ async function collectViaScraping(tag: string, onBatch?: (products: RawProduct[]
     return [];
   }
 
-  for (const query of AMAZON_KEYWORDS) {
+  const searchConfigs = [
+    { keywords: AMAZON_KEYWORDS, filter: isAnimeProduct, defaultCategory: undefined as string | undefined },
+    { keywords: BOOK_AUTHOR_KEYWORDS, filter: isBookProduct, defaultCategory: "livro" as string | undefined },
+  ];
+
+  for (const { keywords, filter, defaultCategory } of searchConfigs) {
+  for (const query of keywords) {
     const context = await browser.newContext({
       userAgent: USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)],
       locale: "pt-BR",
@@ -454,6 +460,8 @@ async function collectViaScraping(tag: string, onBatch?: (products: RawProduct[]
             name.toLowerCase().includes("kindle") ||
             name.toLowerCase().includes("english edition")
           ) return null;
+
+          const isHardcover = subtitleText.includes("capa dura");
           const priceWhole = el.querySelector(".a-price-whole")?.textContent?.replace(/[.,]/g, "").trim() ?? "0";
           const priceFrac = el.querySelector(".a-price-fraction")?.textContent?.trim() ?? "00";
           const currentPrice = parseFloat(`${priceWhole}.${priceFrac}`);
@@ -487,12 +495,12 @@ async function collectViaScraping(tag: string, onBatch?: (products: RawProduct[]
             }
           }
 
-          return { name, currentPrice, originalPrice, rating, reviews, asin, image, productUrl, couponValue, couponType };
+          return { name, currentPrice, originalPrice, rating, reviews, asin, image, productUrl, couponValue, couponType, isHardcover };
         })
       );
 
       for (const item of items) {
-        if (!item || !item.asin || !isAnimeProduct(item.name)) continue;
+        if (!item || !item.asin || !filter(item.name)) continue;
         const discountPct = item.originalPrice
           ? Math.round(((item.originalPrice - item.currentPrice) / item.originalPrice) * 100)
           : 0;
@@ -515,10 +523,11 @@ async function collectViaScraping(tag: string, onBatch?: (products: RawProduct[]
           reviews: item.reviews,
           image_url: item.image,
           product_url: `${item.productUrl}?tag=${tag}`,
-          category: detectCategory(item.name),
+          category: defaultCategory ?? detectCategory(item.name),
           coupon_value: item.couponValue,
           coupon_type: item.couponType,
           final_price: finalPrice,
+          is_hardcover: item.isHardcover,
         };
 
         if (onBatch) {
@@ -535,6 +544,7 @@ async function collectViaScraping(tag: string, onBatch?: (products: RawProduct[]
 
     await sleep(3000 + Math.random() * 3000);
   }
+  } // fim searchConfigs loop
 
   await browser.close();
   return products;

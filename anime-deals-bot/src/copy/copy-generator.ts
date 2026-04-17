@@ -115,7 +115,7 @@ function getProductEmoji(category: string): string {
 }
 
 export function generateCopyTemplate(product: ScoredProduct): string {
-  const emoji = getProductEmoji(product.category);
+  const emoji = getProductEmoji(product.category ?? "outros");
   const name = product.name.length > 50 ? product.name.slice(0, 50) + "..." : product.name;
   const couponValue = (product as any).coupon_value as number | undefined;
   const couponType = (product as any).coupon_type as "fixed" | "percent" | undefined;
@@ -134,6 +134,10 @@ export function generateCopyTemplate(product: ScoredProduct): string {
     const couponLabel = couponType === "fixed" ? `R$${couponValue} OFF` : `${couponValue}% OFF`;
     lines.push(`🎟️ Cupom: ${couponLabel}`);
     lines.push(`💸 Com cupom: ${formatPrice(finalPrice)}`);
+  }
+
+  if (product.is_hardcover) {
+    lines.push(`📘 Capa Dura`);
   }
 
   if (product.is_lowest_price) {
