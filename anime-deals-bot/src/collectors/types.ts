@@ -258,9 +258,17 @@ export const BOOK_AUTHOR_KEYWORDS = [
   "Robert Curran",
 ];
 
+const BOOK_POSITIVE_KEYWORDS = [
+  "livro", "romance", "novel", "capa dura", "capa comum", "brochura",
+  "edição", "volume", "vol.", "saga", "série", "coleção", "trilogia",
+  "duologia", "fantasia", "ficção", "biografia", "autoajuda", "literatura",
+  "ilustrado", "hardcover", "paperback",
+];
+
 export function isBookProduct(name: string): boolean {
   const lower = name.toLowerCase();
-  return !BLOCKLIST.some(kw => lower.includes(kw));
+  if (BLOCKLIST.some(kw => lower.includes(kw))) return false;
+  return BOOK_POSITIVE_KEYWORDS.some(kw => lower.includes(kw));
 }
 
 export function isAnimeProduct(name: string): boolean {

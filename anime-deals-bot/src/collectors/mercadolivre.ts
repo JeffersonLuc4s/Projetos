@@ -130,7 +130,9 @@ async function searchViaScraping(browser: any, query: string, onBatch?: (product
   try {
     const page = await context.newPage();
 
-    const url = `https://lista.mercadolivre.com.br/${encodeURIComponent(query)}_FORMAT_Impresso`;
+    const url = forcedCategory === "livro"
+      ? `https://lista.mercadolivre.com.br/livros-revistas-comics/${encodeURIComponent(query)}_FORMAT_Impresso`
+      : `https://lista.mercadolivre.com.br/${encodeURIComponent(query)}_FORMAT_Impresso`;
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 });
     await page.waitForTimeout(2000);
 
