@@ -1,8 +1,9 @@
-// Show login/cadastro on desktop
+// Show login/cadastro on desktop (só roda se os botões existirem no HTML)
 const lBtn = document.getElementById('loginBtn');
 const cBtn = document.getElementById('cadastroBtn');
 
 function updateAuthButtons() {
+  if (!lBtn || !cBtn) return;
   if (window.innerWidth >= 1024) {
     lBtn.style.display = 'inline-flex';
     cBtn.style.display = 'inline-flex';
@@ -87,7 +88,7 @@ const observer = new IntersectionObserver((entries) => {
 }, { threshold: 0.15 });
 reveals.forEach(r => observer.observe(r));
 
-// Depoimentos carousel
+// Depoimentos carousel (só roda se a seção existir no HTML)
 const depoTrack = document.getElementById('depoTrack');
 let depoIndex = 0;
 
@@ -96,18 +97,21 @@ function getDepoVisible() {
 }
 
 function moveDepo(dir) {
+  if (!depoTrack) return;
   const total = document.querySelectorAll('.depo-slide').length;
   const vis = getDepoVisible();
   depoIndex = Math.max(0, Math.min(depoIndex + dir, total - vis));
   depoTrack.style.transform = `translateX(-${depoIndex * (100 / vis)}%)`;
 }
 
-let depoAuto = setInterval(() => {
-  const total = document.querySelectorAll('.depo-slide').length;
-  const vis = getDepoVisible();
-  depoIndex = (depoIndex + 1) % (total - vis + 1);
-  depoTrack.style.transform = `translateX(-${depoIndex * (100 / vis)}%)`;
-}, 4000);
+if (depoTrack) {
+  setInterval(() => {
+    const total = document.querySelectorAll('.depo-slide').length;
+    const vis = getDepoVisible();
+    depoIndex = (depoIndex + 1) % (total - vis + 1);
+    depoTrack.style.transform = `translateX(-${depoIndex * (100 / vis)}%)`;
+  }, 4000);
+}
 
 // Gallery — auto-scroll infinito + setas + lightbox
 (function () {
@@ -197,10 +201,12 @@ let depoAuto = setInterval(() => {
   });
 })();
 
-// Video placeholder
+// Vídeo institucional — Reel do Facebook
 function loadVideo() {
   const w = document.querySelector('.video-wrapper');
-  w.innerHTML = '<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1" allow="autoplay;encrypted-media" allowfullscreen title="Vídeo institucional"></iframe>';
+  w.classList.add('video-vertical');
+  const src = 'https://www.facebook.com/plugins/video.php?href=https%3A%2F%2Fwww.facebook.com%2Freel%2F1141497954719803&show_text=false&t=0&autoplay=1';
+  w.innerHTML = '<iframe src="' + src + '" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share" allowfullscreen scrolling="no" frameborder="0" title="Vídeo institucional do Colégio Ipuense"></iframe>';
 }
 
 // Back to top
@@ -209,14 +215,14 @@ window.addEventListener('scroll', () => {
   backTop.classList.toggle('show', window.scrollY > 400);
 });
 
-// Contact form
-const contactForm = document.querySelector('.contato form, .contato .reveal');
-if (contactForm) {
-  const submitBtn = contactForm.querySelector('.btn-primary');
-  if (submitBtn) {
-    submitBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      alert('Mensagem enviada com sucesso! Entraremos em contato em breve.');
-    });
-  }
-}
+// Contact form — comentado enquanto o form real não existe (botão do CTA vai direto pro WhatsApp via href)
+// const contactForm = document.querySelector('.contato form');
+// if (contactForm) {
+//   const submitBtn = contactForm.querySelector('.btn-primary');
+//   if (submitBtn) {
+//     submitBtn.addEventListener('click', (e) => {
+//       e.preventDefault();
+//       alert('Mensagem enviada com sucesso! Entraremos em contato em breve.');
+//     });
+//   }
+// }

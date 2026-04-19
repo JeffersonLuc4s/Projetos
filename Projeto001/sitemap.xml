@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  <url>
+    <loc>https://colegio-ipuense.vercel.app/</loc>
+    <lastmod>2026-04-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://colegio-ipuense.vercel.app/img/fachada.jpg.jpeg</image:loc>
+      <image:title>Fachada do Colégio Ipuense em Ipu-CE</image:title>
+      <image:caption>Colégio Ipuense, escola tradicional em Ipu-CE desde 1952</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://colegio-ipuense.vercel.app/img/quadra.jpg.jpeg</image:loc>
+      <image:title>Quadra coberta do Colégio Ipuense</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://colegio-ipuense.vercel.app/img/sala-aula.jpg.jpeg</image:loc>
+      <image:title>Sala de aula do Colégio Ipuense em Ipu-CE</image:title>
+    </image:image>
+  </url>
+</urlset>
