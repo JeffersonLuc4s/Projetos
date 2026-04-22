@@ -1,0 +1,30 @@
+{
+  "name": "makeup-deals-bot",
+  "version": "1.0.0",
+  "description": "Bot de promoções de maquiagem para Telegram com afiliados via Rakuten",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "db:migrate": "tsx src/database/migrate.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@libsql/client": "^0.14.0",
+    "axios": "^1.7.0",
+    "dotenv": "^16.4.5",
+    "fast-xml-parser": "^5.7.1",
+    "grammy": "^1.24.0",
+    "node-cron": "^3.0.3",
+    "playwright": "^1.44.0",
+    "winston": "^3.13.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.0",
+    "@types/node-cron": "^3.0.11",
+    "tsx": "^4.10.0",
+    "typescript": "^5.4.0"
+  }
+}
