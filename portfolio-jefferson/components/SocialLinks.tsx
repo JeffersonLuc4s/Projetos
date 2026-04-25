@@ -16,7 +16,7 @@ const socials = [
   },
   {
     label: "Email",
-    href: "mailto:jeffersonkirigaya@gmail.com",
+    href: "mailto:jeffersonluc4scontato@gmail.com",
     icon: Mail,
   },
 ];
