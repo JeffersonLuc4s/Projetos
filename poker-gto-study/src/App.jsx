@@ -3312,8 +3312,19 @@ export default function PokerGTOStudy() {
             <div className="flex gap-2">
               <Info size={14} className="shrink-0 mt-0.5 text-stone-500" />
               <p>
-                Próximas features sugeridas: stacks 50bb e 20bb (MTT), 3-bet pots, postflop via integração com WASM Postflop (open-source).
+                Próxima feature: ranges para mesa <span className="text-amber-300">full ring (9-max)</span> — atualmente só há suporte para 6-max.
               </p>
+            </div>
+            <div className="pt-4 mt-2 border-t border-stone-800/60 text-center text-stone-400">
+              Feito por{" "}
+              <a
+                href="https://projetos-three-gules.vercel.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-amber-300 hover:text-amber-200 underline underline-offset-2 transition-colors"
+              >
+                Jefferson Lucas
+              </a>
             </div>
           </div>
         </footer>
