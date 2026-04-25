@@ -18,6 +18,13 @@ const projects: Project[] = [
     stack: ["Next.js", "TypeScript", "Auth", "Vercel"],
     url: "https://projetos-teal-nine.vercel.app",
   },
+  {
+    name: "Poker GTO Study",
+    description:
+      "Trainer de poker preflop 6-max com decisões baseadas em GTO (Game Theory Optimal), incluindo all-in e sizing — feedback imediato pra calibrar ranges.",
+    stack: ["React", "Vite", "Tailwind", "Vercel"],
+    url: "https://projetos-bhxk.vercel.app",
+  },
 ];
 
 const containerVariants = {
