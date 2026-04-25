@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { ArrowDown, Download } from "lucide-react";
+import { Download, MessageCircle } from "lucide-react";
 import SocialLinks from "./SocialLinks";
 
 export default function Hero() {
@@ -94,20 +94,22 @@ export default function Hero() {
           className="mt-8 flex flex-wrap items-center justify-center gap-4 md:justify-start"
         >
           <a
-            href="#contato"
+            href="https://wa.me/5585989264100"
+            target="_blank"
+            rel="noopener noreferrer"
             className="group inline-flex items-center gap-2 rounded-lg bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-all duration-300 hover:bg-foreground/90 hover:shadow-[0_0_30px_-8px_rgba(250,250,250,0.5)]"
           >
             Entre em contato
-            <ArrowDown className="h-4 w-4 transition-transform duration-300 group-hover:translate-y-0.5" />
+            <MessageCircle className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
           </a>
 
           <a
-            href="/cv.pdf"
+            href="/curriculo.pdf"
             download
             className="group inline-flex items-center gap-2 rounded-lg border border-border bg-surface/40 px-4 py-2.5 text-sm font-medium text-foreground transition-all duration-300 hover:border-accent/60 hover:bg-surface/60"
           >
             <Download className="h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5" />
-            Download CV
+            Baixar Currículo
           </a>
 
           <div className="ml-0 md:ml-2">
