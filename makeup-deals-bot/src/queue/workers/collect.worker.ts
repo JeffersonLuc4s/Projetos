@@ -1,6 +1,8 @@
 import { collectQueue, addPublishJob, CollectJobData } from "../queues";
 import { collectFromBelezaNaWeb } from "../../collectors/belezanaweb";
 import { collectFromOcean } from "../../collectors/ocean";
+import { collectFromSallve } from "../../collectors/sallve";
+import { collectFromMercadoLivre } from "../../collectors/mercadolivre";
 import { filterProducts } from "../../filters/deal-filter";
 import { scoreAndRank } from "../../scoring/deal-scorer";
 import { buildAffiliateLink } from "../../affiliate/link-manager";
@@ -60,12 +62,22 @@ async function processCollect(data: CollectJobData) {
 
   const { source } = data;
 
-  if (source === "belezanaweb" || source === "all") {
+  // Beleza na Web temporariamente fora do "all" — teste focado em Sallve.
+  // Pra rodar BNW manualmente, dispare com source="belezanaweb".
+  if (source === "belezanaweb") {
     await collectFromBelezaNaWeb(onBatch);
   }
 
   if (source === "ocean" || source === "all") {
     await collectFromOcean(onBatch);
+  }
+
+  if (source === "sallve" || source === "all") {
+    await collectFromSallve(onBatch);
+  }
+
+  if (source === "mercadolivre" || source === "all") {
+    await collectFromMercadoLivre(onBatch);
   }
 
   logger.info(`[CollectWorker] Concluído. ${publishedCount} posts publicados.`);

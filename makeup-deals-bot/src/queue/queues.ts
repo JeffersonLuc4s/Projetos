@@ -6,7 +6,7 @@
 import { logger } from "../utils/logger";
 
 export interface CollectJobData {
-  source: "belezanaweb" | "ocean" | "all";
+  source: "belezanaweb" | "ocean" | "sallve" | "mercadolivre" | "all";
 }
 
 export interface PublishJobData {

@@ -45,10 +45,18 @@ export async function filterProducts(
       continue;
     }
 
-    // Desconto mínimo por categoria (regra dura, sem bypass)
+    // Desconto efetivo (considera cupom se houver)
     const minDiscount = minDiscountForCategory(product.category);
-    if (product.discount_pct < minDiscount) {
-      logger.debug(`[Filter] ${product.name.slice(0, 40)} — desconto insuficiente (${product.discount_pct}% < ${minDiscount}%)`);
+    const effectivePrice = product.final_price ?? product.current_price;
+    const effectiveDiscount = product.original_price && product.original_price > 0
+      ? Math.round((1 - effectivePrice / product.original_price) * 100)
+      : product.discount_pct;
+
+    if (effectiveDiscount < minDiscount) {
+      const couponInfo = product.coupon_value
+        ? ` (base ${product.discount_pct}% + cupom ${product.coupon_value}${product.coupon_type === "percent" ? "%" : " fixo"})`
+        : "";
+      logger.debug(`[Filter] ${product.name.slice(0, 40)} — desconto insuficiente (${effectiveDiscount}% < ${minDiscount}%)${couponInfo}`);
       continue;
     }
 

@@ -36,9 +36,10 @@ export function buildRakutenDeepLink(originalUrl: string, advertiserId: string):
   return `${DEEPLINK_BASE}?${params.toString()}`;
 }
 
-export function getAdvertiserId(source: "belezanaweb" | "ocean"): string {
+export function getAdvertiserId(source: "belezanaweb" | "ocean" | "sallve"): string {
   if (source === "belezanaweb") return process.env.RAKUTEN_ADVERTISER_BELEZA ?? "";
   if (source === "ocean") return process.env.RAKUTEN_ADVERTISER_OCEAN ?? "";
+  if (source === "sallve") return process.env.RAKUTEN_ADVERTISER_SALLVE ?? "53958";
   return "";
 }
 
@@ -70,6 +71,18 @@ function parsePrice(node: any): number {
   return isNaN(n) ? 0 : n;
 }
 
+/**
+ * Remove chars que a Product Search API rejeita com HTTP 400 (observado em
+ * "Dudah!", "Head & Shoulders", "La Roche-Posay"). Normaliza para espaço.
+ */
+function sanitizeKeyword(k: string): string {
+  return k
+    .replace(/[!?&<>"\\/]/g, " ")
+    .replace(/\s*-\s*/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export async function searchRakutenProducts(opts: ProductSearchOptions): Promise<RakutenProduct[]> {
   const token = process.env.RAKUTEN_WS_TOKEN;
   if (!token) {
@@ -77,11 +90,13 @@ export async function searchRakutenProducts(opts: ProductSearchOptions): Promise
     return [];
   }
 
+  const cleanKeyword = sanitizeKeyword(opts.keyword ?? "");
+
   try {
     const res = await axios.get(PRODUCT_SEARCH_URL, {
       params: {
         token,
-        keyword: opts.keyword ?? "",
+        keyword: cleanKeyword,
         mid: opts.mid,
         max: opts.max ?? 50,
         pagenumber: opts.pagenumber ?? 1,

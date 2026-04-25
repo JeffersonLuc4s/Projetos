@@ -27,12 +27,19 @@ export async function shortenUrl(url: string): Promise<string> {
 
 export async function buildAffiliateLink(
   productUrl: string,
-  source: "belezanaweb" | "ocean"
+  source: "belezanaweb" | "ocean" | "sallve" | "mercadolivre"
 ): Promise<{ affUrl: string; shortUrl: string }> {
+  let affUrl = productUrl;
+
+  if (source === "mercadolivre") {
+    // ML já recebe o ?matt_tool=... direto no collector; só encurta aqui.
+    const shortUrl = await shortenUrl(affUrl);
+    return { affUrl, shortUrl };
+  }
+
   // Se já for um link de afiliado do Rakuten (vindo da Product Search API),
   // só encurta. Caso contrário, envelopa num deeplink.
   const isAlreadyAffiliate = /linksynergy\.com\/link/i.test(productUrl);
-  let affUrl = productUrl;
 
   if (!isAlreadyAffiliate) {
     const advertiserId = getAdvertiserId(source);

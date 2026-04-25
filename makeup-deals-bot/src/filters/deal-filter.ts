@@ -12,13 +12,11 @@ export const defaultConfig: FilterConfig = {
   maxPostsPerDay: Number(process.env.MAX_POSTS_PER_DAY ?? 10),
 };
 
-// Desconto mínimo por categoria
-function minDiscountForCategory(category?: string): number {
-  if (category === "maquiagem") return 50;
-  if (category === "skincare") return 50;
-  if (category === "cabelo") return 50;
-  if (category === "perfume") return 50;
-  return 50; // padrão para outros
+// Desconto mínimo por source. Sallve entra com piso mais baixo porque
+// a marca raramente aplica descontos maiores que 30%.
+function minDiscountForProduct(p: RawProduct): number {
+  if (p.source === "sallve") return 30;
+  return 50;
 }
 
 export async function filterProducts(
@@ -57,9 +55,9 @@ export async function filterProducts(
     const minPrice = await getMinPrice90Days(pid);
     const isLowestPrice = minPrice !== null && product.current_price <= minPrice;
 
-    // Desconto mínimo por categoria
-    const minDiscount = minDiscountForCategory(product.category);
-    if (product.discount_pct < minDiscount && !isLowestPrice) {
+    // Piso absoluto por source (sem bypass de isLowestPrice)
+    const minDiscount = minDiscountForProduct(product);
+    if (product.discount_pct < minDiscount) {
       logger.debug(`[Filter] ${product.name.slice(0, 40)} — desconto insuficiente (${product.discount_pct}% < ${minDiscount}%)`);
       continue;
     }

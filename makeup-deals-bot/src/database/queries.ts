@@ -3,7 +3,7 @@ import crypto from "crypto";
 
 export interface Product {
   id: string;
-  source: "belezanaweb" | "ocean";
+  source: "belezanaweb" | "ocean" | "sallve" | "mercadolivre";
   source_id: string;
   name: string;
   category: string;

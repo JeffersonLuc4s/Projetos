@@ -1,105 +1,7 @@
-import { RawProduct, isAnimeProduct, detectCategory, BOOK_AUTHOR_KEYWORDS } from "./types";
+import { RawProduct, isAnimeProduct, isFunkoProduct, detectCategory, BOOK_AUTHOR_KEYWORDS, FUNKO_KEYWORDS, AMAZON_KEYWORDS } from "./types";
 import { logger } from "../utils/logger";
 
 const { ApiClient, DefaultApi, SearchItemsRequestContent } = require("@amzn/creatorsapi-nodejs-sdk");
-
-const AMAZON_KEYWORDS = [
-  "Haikyu!!",
-  "Naruto Gold",
-  "Naruto",
-  "Boruto",
-  "One Piece",
-  "Demon Slayer",
-  "Chainsaw Man",
-  "Spy x Family",
-  "Beastars",
-  "Atelier of Witch Hat",
-  "Soul Eater",
-  "Neon Genesis Evangelion",
-  "Fairy Tail",
-  "Bleach",
-  "Noragami",
-  "Tokyo Ghoul",
-  "Ataque dos Titãs",
-  "Dr. Stone",
-  "Food Wars",
-  "The Promised Neverland",
-  "Fire Force",
-  "Moriarty: o Patriota",
-  "Seraph of the End",
-  "Akira",
-  "Battle Angel Alita",
-  "Death Note",
-  "Hunter X Hunter",
-  "Yu Yu Hakusho",
-  "20th Century Boys",
-  "Mob Psycho 100",
-  "Bungo Stray Dogs",
-  "Golden Kamuy",
-  "Platinum End",
-  "Bakuman",
-  "Fullmetal Alchemist",
-  "Slam Dunk",
-  "Vagabond",
-  "My Hero Academia",
-  "Tokyo Revengers",
-  "Edens Zero",
-  "Shaman King",
-  "Made in Abyss",
-  "Frieren",
-  "Blue Period",
-  "Vinland Saga",
-  "Black Clover",
-  "Jujutsu Kaisen",
-  "Black Butler",
-  "Jojo's Bizarre Adventure",
-  "Dragon Ball",
-  "Blue Lock",
-  "Solo Leveling",
-  "Boa Noite Punpun",
-  "Blue Exorcist",
-  "Berserk",
-  "The Seven Deadly Sins",
-  "Sakamoto Days",
-  "Pluto",
-  "Hellsing",
-  "Dandadan",
-  "Overlord",
-  "Fire Punch",
-  "Hajime no Ippo",
-  "Wind Breaker",
-  "Look Back",
-  "Pokémon",
-  "One-Punch Man",
-  "Record of Ragnarok",
-  "Dororo",
-  "Mushoku Tensei",
-  "Cavaleiros do Zodíaco",
-  "Alice in Borderland",
-  "Parasyte",
-  "Ao Ashi",
-  "Kagurabachi",
-  "Uzumaki",
-  "Tomie",
-  "Junji Ito",
-  "Oshi no Ko",
-  "Kaguya-sama",
-  "Kaiju N.° 8",
-  "Konosuba",
-  "Sword Art Online",
-  "Toradora",
-  "No Game No Life",
-  "Re:Zero",
-  "Nana",
-  "Orange",
-  "Your Name",
-  "Sailor Moon",
-  "Inuyasha",
-  "Skip & Loafer",
-  "Cardcaptor Sakura",
-  "Fruits Basket",
-  "Madoka Magica",
-];
 
 const BLOCKED_BINDINGS = new Set([
   "kindle",
@@ -163,6 +65,29 @@ function matchesAuthor(item: any, authorKeyword: string): boolean {
   return false;
 }
 
+function extractCoupon(listing: any, currentPrice: number): {
+  coupon_value?: number;
+  coupon_type?: "fixed" | "percent";
+  final_price?: number;
+} {
+  const promotions: any[] = listing?.promotions ?? [];
+  const coupon = promotions.find((p) => String(p?.type ?? "").toUpperCase() === "COUPON");
+  if (!coupon) return {};
+
+  const pct = coupon?.discount?.percentage;
+  const fixed = coupon?.discount?.money?.amount;
+
+  if (typeof pct === "number" && pct > 0) {
+    const finalPrice = Math.round(currentPrice * (1 - pct / 100) * 100) / 100;
+    return { coupon_value: pct, coupon_type: "percent", final_price: finalPrice };
+  }
+  if (typeof fixed === "number" && fixed > 0) {
+    const finalPrice = Math.max(0, Math.round((currentPrice - fixed) * 100) / 100);
+    return { coupon_value: fixed, coupon_type: "fixed", final_price: finalPrice };
+  }
+  return {};
+}
+
 function extractRawProduct(item: any, defaultCategory?: string): RawProduct | null {
   const asin = item?.asin;
   const listing = item?.offersV2?.listings?.[0];
@@ -183,6 +108,7 @@ function extractRawProduct(item: any, defaultCategory?: string): RawProduct | nu
   const productUrl = item?.detailPageURL ?? `https://www.amazon.com.br/dp/${asin}`;
   const originalPrice = listing?.price?.savingBasis?.money?.amount;
   const discountPct = listing?.price?.savings?.percentage ?? 0;
+  const coupon = extractCoupon(listing, price);
 
   return {
     source: "amazon",
@@ -197,14 +123,20 @@ function extractRawProduct(item: any, defaultCategory?: string): RawProduct | nu
     product_url: productUrl,
     category: defaultCategory ?? detectCategory(name),
     is_hardcover: isHardcover(item),
+    ...coupon,
   };
 }
 
-async function searchKeyword(api: any, partnerTag: string, keyword: string): Promise<any[]> {
+async function searchKeyword(
+  api: any,
+  partnerTag: string,
+  keyword: string,
+  searchIndex: string = "Books"
+): Promise<any[]> {
   const req = new SearchItemsRequestContent();
   req.partnerTag = partnerTag;
   req.keywords = keyword;
-  req.searchIndex = "Books";
+  req.searchIndex = searchIndex;
   req.itemCount = 10;
   req.resources = [
     "images.primary.large",
@@ -220,8 +152,13 @@ async function searchKeyword(api: any, partnerTag: string, keyword: string): Pro
     return res?.searchResult?.items ?? [];
   } catch (err: any) {
     const status = err?.status ?? err?.response?.statusCode;
+    const body = err?.response?.body ?? err?.body ?? err?.response?.data;
+    const apiMsg =
+      body?.errors?.[0]?.message ??
+      body?.Errors?.[0]?.Message ??
+      (typeof body === "string" ? body : JSON.stringify(body ?? {}).slice(0, 200));
     const msg = err?.message ?? String(err);
-    logger.warn(`[Amazon API] "${keyword}" → erro ${status ?? ""}: ${msg.slice(0, 120)}`);
+    logger.warn(`[Amazon API] "${keyword}" → erro ${status ?? ""}: ${apiMsg || msg.slice(0, 120)}`);
     return [];
   }
 }
@@ -239,13 +176,14 @@ async function collectViaCreatorsAPI(
   const products: RawProduct[] = [];
 
   const searchConfigs = [
-    { keywords: AMAZON_KEYWORDS, filter: isAnimeProduct as ((name: string) => boolean) | null, defaultCategory: undefined as string | undefined, validateAuthor: false },
-    { keywords: BOOK_AUTHOR_KEYWORDS, filter: null, defaultCategory: "livro" as string | undefined, validateAuthor: true },
+    { keywords: AMAZON_KEYWORDS, filter: isAnimeProduct as ((name: string) => boolean) | null, defaultCategory: undefined as string | undefined, validateAuthor: false, searchIndex: "Books" },
+    { keywords: FUNKO_KEYWORDS, filter: isFunkoProduct as ((name: string) => boolean) | null, defaultCategory: "figure" as string | undefined, validateAuthor: false, searchIndex: "All" },
+    { keywords: BOOK_AUTHOR_KEYWORDS, filter: null, defaultCategory: "livro" as string | undefined, validateAuthor: true, searchIndex: "Books" },
   ];
 
-  for (const { keywords, filter, defaultCategory, validateAuthor } of searchConfigs) {
+  for (const { keywords, filter, defaultCategory, validateAuthor, searchIndex } of searchConfigs) {
     for (const query of keywords) {
-      const items = await searchKeyword(api, tag, query);
+      const items = await searchKeyword(api, tag, query, searchIndex);
 
       const batch: RawProduct[] = [];
       for (const item of items) {

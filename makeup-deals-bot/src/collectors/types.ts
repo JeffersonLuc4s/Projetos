@@ -1,5 +1,7 @@
+import { BRAND_KEYWORDS_NORMALIZED } from "./brands";
+
 export interface RawProduct {
-  source: "belezanaweb" | "ocean";
+  source: "belezanaweb" | "ocean" | "sallve" | "mercadolivre";
   source_id: string;
   name: string;
   current_price: number;
@@ -45,17 +47,8 @@ const PERFUME_KEYWORDS = [
   "fragrância", "fragrancia", "body splash",
 ];
 
-// Marcas comuns de beleza — ajudam a identificar produtos legítimos
-const BRAND_KEYWORDS = [
-  "maybelline", "mac", "ruby rose", "nars", "urban decay", "dior", "chanel",
-  "boticário", "boticario", "eudora", "quem disse, berenice", "natura",
-  "avon", "vult", "dailus", "bruna tavares", "bt", "océane", "oceane",
-  "too faced", "benefit", "charlotte tilbury", "fenty", "anastasia beverly hills",
-  "huda beauty", "rare beauty", "nyx", "revlon", "l'oréal", "loreal",
-  "the ordinary", "cerave", "la roche-posay", "vichy", "eucerin", "neutrogena",
-  "olaplex", "wella", "kérastase", "kerastase", "redken", "lowell",
-  "clinique", "estée lauder", "lancôme", "lancome", "shiseido", "sk-ii",
-];
+// Marcas comuns de beleza — vêm da lista oficial em brands.ts
+const BRAND_KEYWORDS = BRAND_KEYWORDS_NORMALIZED;
 
 // Palavras que EXCLUEM o produto
 const BLOCKLIST = [

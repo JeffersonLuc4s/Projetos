@@ -1,28 +1,19 @@
-﻿/**
- * Coletor do Mercado Livre.
+/**
+ * Coletor do Mercado Livre para maquiagem/beleza.
  *
  * Estratégia:
- * 1. OAuth client_credentials (se ML_APP_ID + ML_APP_SECRET configurados)
+ * 1. OAuth client_credentials (se ML_APP_ID + ML_APP_SECRET configurados) — API
  * 2. Scraping do site público com Playwright como fallback
+ *
+ * Links de afiliado: appenda ?matt_tool=<MERCADOLIVRE_AFFILIATE_ID>
  */
 
 import axios from "axios";
-import { RawProduct, isAnimeProduct, isBookProduct, isFunkoProduct, detectCategory, BOOK_AUTHOR_KEYWORDS, FUNKO_KEYWORDS, AMAZON_KEYWORDS } from "./types";
+import { RawProduct, isMakeupProduct, detectCategory } from "./types";
+import { BRANDS } from "./brands";
 import { logger } from "../utils/logger";
 
 const ML_API = "https://api.mercadolibre.com";
-
-const SEARCH_QUERIES = [
-  "manga naruto", "manga one piece", "manga dragon ball",
-  "figure anime", "funko pop anime", "nendoroid anime",
-  "banpresto figure", "figure jujutsu kaisen",
-  "figure demon slayer", "figure my hero academia",
-  "box colecionador manga",
-];
-
-// =====================================================================
-// OAuth Token (client_credentials)
-// =====================================================================
 
 let cachedToken: { token: string; expiresAt: number } | null = null;
 
@@ -56,17 +47,23 @@ async function getAccessToken(): Promise<string | null> {
   }
 }
 
-// =====================================================================
-// Busca via API autenticada
-// =====================================================================
+function appendAffiliate(url: string): string {
+  const id = process.env.MERCADOLIVRE_AFFILIATE_ID;
+  if (!id) return url;
+  const sep = url.includes("?") ? "&" : "?";
+  return `${url}${sep}matt_tool=${id}`;
+}
 
-async function searchViaAPI(query: string, token: string, limit = 20): Promise<RawProduct[]> {
+async function searchViaAPI(query: string, token: string, limit = 30): Promise<RawProduct[]> {
   const res = await axios.get(`${ML_API}/sites/MLB/search`, {
-    params: { q: query, limit, condition: "new", sort: "relevance" },
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
+    params: {
+      q: query,
+      limit,
+      condition: "new",
+      sort: "relevance",
+      category: "MLB1246", // Beleza & Cuidado Pessoal
     },
+    headers: { Authorization: `Bearer ${token}` },
     timeout: 10000,
   });
 
@@ -74,28 +71,27 @@ async function searchViaAPI(query: string, token: string, limit = 20): Promise<R
   const products: RawProduct[] = [];
 
   for (const item of items) {
-    if (!isAnimeProduct(item.title)) continue;
+    if (!isMakeupProduct(item.title)) continue;
 
-    const discount_pct = item.original_price
-      ? Math.round(((item.original_price - item.price) / item.original_price) * 100)
+    const original = item.original_price ?? 0;
+    const current = item.price ?? 0;
+    const discount_pct = original && original > current
+      ? Math.round(((original - current) / original) * 100)
       : 0;
 
-    const affiliateId = process.env.MERCADOLIVRE_AFFILIATE_ID ?? "";
-    const productUrl = affiliateId
-      ? `${item.permalink}?matt_tool=${affiliateId}`
-      : item.permalink;
+    if (current <= 0) continue;
 
     products.push({
       source: "mercadolivre",
       source_id: item.id,
       name: item.title,
-      current_price: item.price,
-      original_price: item.original_price ?? undefined,
+      current_price: current,
+      original_price: original > 0 ? original : undefined,
       discount_pct,
-      rating: item.seller_info?.seller_reputation?.transactions?.ratings?.positive ?? 0,
-      reviews: item.seller_info?.seller_reputation?.transactions?.completed ?? 0,
+      rating: 0,
+      reviews: 0,
       image_url: item.thumbnail?.replace("I.jpg", "O.jpg"),
-      product_url: productUrl,
+      product_url: appendAffiliate(item.permalink),
       category: detectCategory(item.title),
     });
   }
@@ -103,12 +99,7 @@ async function searchViaAPI(query: string, token: string, limit = 20): Promise<R
   return products;
 }
 
-// =====================================================================
-// Scraping via Playwright (fallback sem credenciais)
-// =====================================================================
-
 function parseBRPrice(text: string): number {
-  // Formato BR: R$1.234,56 — pega o primeiro preço encontrado
   const match = text.match(/R\$\s*([\d.]+),([\d]{2})/);
   if (!match) {
     const intOnly = text.match(/R\$\s*([\d.]+)/);
@@ -118,8 +109,11 @@ function parseBRPrice(text: string): number {
   return parseFloat(`${match[1].replace(/\./g, "")}.${match[2]}`);
 }
 
-async function searchViaScraping(browser: any, query: string, onBatch?: (products: RawProduct[]) => Promise<void>, filterFn?: (name: string) => boolean, forcedCategory?: string): Promise<RawProduct[]> {
-  const activeFilter = filterFn ?? isAnimeProduct;
+async function searchViaScraping(
+  browser: any,
+  query: string,
+  onBatch?: (products: RawProduct[]) => Promise<void>,
+): Promise<RawProduct[]> {
   const products: RawProduct[] = [];
 
   const context = await browser.newContext({
@@ -129,15 +123,12 @@ async function searchViaScraping(browser: any, query: string, onBatch?: (product
 
   try {
     const page = await context.newPage();
-
-    const url = forcedCategory === "livro"
-      ? `https://lista.mercadolivre.com.br/livros-revistas-comics/${encodeURIComponent(query)}_FORMAT_Impresso`
-      : `https://lista.mercadolivre.com.br/${encodeURIComponent(query)}_FORMAT_Impresso`;
+    const url = `https://lista.mercadolivre.com.br/beleza-cuidado-pessoal/${encodeURIComponent(query)}`;
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 });
     await page.waitForTimeout(2000);
 
     const items = await page.$$eval(".ui-search-layout__item", (els: any[]) =>
-      els.slice(0, 10).map((el: any) => {
+      els.slice(0, 15).map((el: any) => {
         const title = el.querySelector(".poly-component__title")?.textContent?.trim() ?? "";
 
         const currentFraction = el.querySelector(".poly-price__current .andes-money-amount__fraction")?.textContent?.trim() ?? "0";
@@ -159,8 +150,8 @@ async function searchViaScraping(browser: any, query: string, onBatch?: (product
         const imgEl = el.querySelector("img.poly-component__picture") as any;
         const linkEl = el.querySelector("a.poly-component__title") as any;
         const href = linkEl?.href ?? "";
-
         const cleanHref = href.split("#")[0];
+
         let mlbId = "";
         let productUrl = "";
 
@@ -179,9 +170,6 @@ async function searchViaScraping(browser: any, query: string, onBatch?: (product
           productUrl = `https://www.mercadolivre.com.br/p/${mlbId}`;
         }
 
-        const ratingText = el.querySelector(".poly-reviews__rating, [class*='rating-number']")?.textContent?.trim() ?? "0";
-        const reviewsText = el.querySelector(".poly-reviews__total, [class*='reviews__total']")?.textContent?.replace(/\D/g, "") ?? "0";
-
         return {
           title,
           currentPriceText,
@@ -190,16 +178,14 @@ async function searchViaScraping(browser: any, query: string, onBatch?: (product
           image: imgEl?.src ?? "",
           mlbId,
           productUrl,
-          rating: parseFloat(ratingText.replace(",", ".")) || 0,
-          reviews: parseInt(reviewsText, 10) || 0,
         };
       })
     );
 
-    const affiliateId = process.env.MERCADOLIVRE_AFFILIATE_ID ?? "";
-
+    const batch: RawProduct[] = [];
     for (const item of items) {
-      if (!item.mlbId || !item.currentPriceText || !activeFilter(item.title)) continue;
+      if (!item.mlbId || !item.currentPriceText) continue;
+      if (!isMakeupProduct(item.title)) continue;
 
       const currentPrice = parseBRPrice(item.currentPriceText);
       const originalPrice = item.originalPriceText ? parseBRPrice(item.originalPriceText) : undefined;
@@ -209,9 +195,6 @@ async function searchViaScraping(browser: any, query: string, onBatch?: (product
         ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100)
         : (item.discountPctDirect ?? 0);
 
-      const separator = item.productUrl.includes("?") ? "&" : "?";
-      const productUrl = affiliateId ? `${item.productUrl}${separator}matt_tool=${affiliateId}` : item.productUrl;
-
       const product: RawProduct = {
         source: "mercadolivre",
         source_id: item.mlbId,
@@ -219,19 +202,18 @@ async function searchViaScraping(browser: any, query: string, onBatch?: (product
         current_price: currentPrice,
         original_price: originalPrice,
         discount_pct,
-        rating: item.rating,
-        reviews: item.reviews,
+        rating: 0,
+        reviews: 0,
         image_url: item.image,
-        product_url: productUrl,
-        category: forcedCategory ?? detectCategory(item.title),
+        product_url: appendAffiliate(item.productUrl),
+        category: detectCategory(item.title),
       };
 
-      if (onBatch) {
-        await onBatch([product]);
-      } else {
-        products.push(product);
-      }
+      products.push(product);
+      batch.push(product);
     }
+
+    if (onBatch && batch.length > 0) await onBatch(batch);
   } catch (err) {
     logger.error(`[ML Scraping] Erro na busca "${query}":`, err);
   } finally {
@@ -241,27 +223,32 @@ async function searchViaScraping(browser: any, query: string, onBatch?: (product
   return products;
 }
 
-// =====================================================================
-// Coletor principal
-// =====================================================================
+export async function collectFromMercadoLivre(
+  onBatch?: (products: RawProduct[]) => Promise<void>
+): Promise<RawProduct[]> {
+  if (!process.env.MERCADOLIVRE_AFFILIATE_ID) {
+    logger.info("[ML] Desabilitado (MERCADOLIVRE_AFFILIATE_ID não configurado).");
+    return [];
+  }
 
-export async function collectFromMercadoLivre(onBatch?: (products: RawProduct[]) => Promise<void>): Promise<RawProduct[]> {
   const token = await getAccessToken();
-  const allProducts: RawProduct[] = [];
+  const all: RawProduct[] = [];
   const seen = new Set<string>();
 
   if (token) {
     logger.info("[ML] Usando API autenticada (OAuth).");
-    for (const query of SEARCH_QUERIES) {
+    for (const brand of BRANDS) {
       try {
-        logger.info(`[ML] Buscando: "${query}"`);
-        const products = await searchViaAPI(query, token);
-        for (const p of products) {
-          if (!seen.has(p.source_id)) { seen.add(p.source_id); allProducts.push(p); }
+        const products = await searchViaAPI(brand, token);
+        const onSale = products.filter(p => p.discount_pct > 0);
+        for (const p of onSale) {
+          if (!seen.has(p.source_id)) { seen.add(p.source_id); all.push(p); }
         }
+        logger.info(`[ML] "${brand}": ${products.length} resultados, ${onSale.length} em promo`);
+        if (onBatch && onSale.length > 0) await onBatch(onSale);
         await sleep(600);
       } catch (err) {
-        logger.error(`[ML] Erro na query "${query}":`, err);
+        logger.error(`[ML] Erro na marca "${brand}":`, err);
       }
     }
   } else {
@@ -273,7 +260,7 @@ export async function collectFromMercadoLivre(onBatch?: (products: RawProduct[])
       chromium = pw.chromium;
     } catch {
       logger.warn("[ML Scraping] Playwright não disponível.");
-      return allProducts;
+      return all;
     }
 
     let browser: any;
@@ -281,56 +268,34 @@ export async function collectFromMercadoLivre(onBatch?: (products: RawProduct[])
       browser = await chromium.launch({ headless: true });
     } catch {
       logger.warn("[ML Scraping] Browser não disponível.");
-      return allProducts;
+      return all;
     }
 
-    // Anime/mangá (mesma lista usada na Amazon)
-    for (const query of AMAZON_KEYWORDS) {
-      try {
-        logger.info(`[ML Scraping] Buscando anime/mangá: "${query}"`);
-        const products = await searchViaScraping(browser, query, onBatch, isAnimeProduct);
-        for (const p of products) {
-          if (!seen.has(p.source_id)) { seen.add(p.source_id); allProducts.push(p); }
+    try {
+      for (const brand of BRANDS) {
+        try {
+          const products = await searchViaScraping(browser, brand, async (batch) => {
+            const onSale = batch.filter(p => p.discount_pct > 0 && !seen.has(p.source_id));
+            for (const p of onSale) seen.add(p.source_id);
+            if (onBatch && onSale.length > 0) await onBatch(onSale);
+          });
+          const onSale = products.filter(p => p.discount_pct > 0);
+          logger.info(`[ML Scraping] "${brand}": ${products.length} resultados, ${onSale.length} em promo`);
+          for (const p of onSale) {
+            if (!all.find(x => x.source_id === p.source_id)) all.push(p);
+          }
+          await sleep(3000);
+        } catch (err) {
+          logger.error(`[ML Scraping] Erro na marca "${brand}":`, err);
         }
-        await sleep(3000);
-      } catch (err) {
-        logger.error(`[ML Scraping] Erro:`, err);
       }
+    } finally {
+      await browser.close();
     }
-
-    // Funkos
-    for (const query of FUNKO_KEYWORDS) {
-      try {
-        logger.info(`[ML Scraping] Buscando funko: "${query}"`);
-        const products = await searchViaScraping(browser, query, onBatch, isFunkoProduct, "figure");
-        for (const p of products) {
-          if (!seen.has(p.source_id)) { seen.add(p.source_id); allProducts.push(p); }
-        }
-        await sleep(3000);
-      } catch (err) {
-        logger.error(`[ML Scraping] Erro:`, err);
-      }
-    }
-
-    // Loop de autores de livros
-    for (const query of BOOK_AUTHOR_KEYWORDS) {
-      try {
-        logger.info(`[ML Scraping] Buscando livro: "${query}"`);
-        const products = await searchViaScraping(browser, query, onBatch, isBookProduct, "livro");
-        for (const p of products) {
-          if (!seen.has(p.source_id)) { seen.add(p.source_id); allProducts.push(p); }
-        }
-        await sleep(3000);
-      } catch (err) {
-        logger.error(`[ML Scraping] Erro:`, err);
-      }
-    }
-
-    await browser.close();
   }
 
-  logger.info(`[ML] Total coletado: ${allProducts.length} produtos`);
-  return allProducts;
+  logger.info(`[ML] Total: ${all.length} produtos em promo.`);
+  return all;
 }
 
 function sleep(ms: number) {

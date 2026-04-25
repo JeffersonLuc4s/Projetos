@@ -2,7 +2,7 @@ import cron from "node-cron";
 import { addCollectJob } from "../queue/queues";
 import { logger } from "../utils/logger";
 
-const SCHEDULES: Array<{ name: string; cron: string; source: "belezanaweb" | "ocean" | "all" }> = [
+const SCHEDULES: Array<{ name: string; cron: string; source: "belezanaweb" | "ocean" | "sallve" | "mercadolivre" | "all" }> = [
   { name: "Coleta das 10h", cron: "0 10 * * *", source: "all" },
   { name: "Coleta das 16h", cron: "0 16 * * *", source: "all" },
   { name: "Coleta das 22h", cron: "0 22 * * *", source: "all" },
@@ -40,7 +40,7 @@ export function startScheduler() {
   logger.info("[Cron] Scheduler iniciado.");
 }
 
-export async function triggerImmediateCollect(source: "belezanaweb" | "ocean" | "all" = "all") {
+export async function triggerImmediateCollect(source: "belezanaweb" | "ocean" | "sallve" | "mercadolivre" | "all" = "all") {
   logger.info(`[Cron] Coleta imediata disparada (source=${source})`);
   return addCollectJob({ source });
 }
