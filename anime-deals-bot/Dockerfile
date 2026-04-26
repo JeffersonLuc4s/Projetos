@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 COPY package*.json ./
+COPY sdk ./sdk
 RUN npm install
 
 # Instala o Chromium na versão exata que o Playwright do projeto usa
