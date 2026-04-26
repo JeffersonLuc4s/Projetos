@@ -1,6 +1,6 @@
 import { collectQueue, addPublishJob, CollectJobData } from "../queues";
 import { collectFromAmazon } from "../../collectors/amazon";
-import { collectFromMercadoLivre } from "../../collectors/mercadolivre";
+// import { collectFromMercadoLivre } from "../../collectors/mercadolivre"; // ML desativado
 import { filterProducts } from "../../filters/deal-filter";
 import { scoreAndRank } from "../../scoring/deal-scorer";
 import { buildAffiliateLink } from "../../affiliate/link-manager";
@@ -64,9 +64,10 @@ async function processCollect(data: CollectJobData) {
     await collectFromAmazon(onBatch);
   }
 
-  if (source === "mercadolivre" || source === "all") {
-    await collectFromMercadoLivre(onBatch);
-  }
+  // Mercado Livre desativado — usar somente Amazon API
+  // if (source === "mercadolivre" || source === "all") {
+  //   await collectFromMercadoLivre(onBatch);
+  // }
 
   logger.info(`[CollectWorker] Concluído. ${publishedCount} posts publicados.`);
 }

@@ -5,7 +5,7 @@
  * Fallback para templates caso a API não esteja disponível.
  */
 
-import Anthropic from "@anthropic-ai/sdk";
+import Anthropic from "@anthropic-ai/sdk/index.mjs";
 import { ScoredProduct } from "../scoring/deal-scorer";
 import { logger } from "../utils/logger";
 
@@ -50,6 +50,7 @@ ${product.discount_pct > 0 ? `Desconto: ${product.discount_pct}%` : ""}
 ${couponInfo}
 ${product.rating > 0 ? `Avaliação: ${product.rating}/5 (${product.reviews.toLocaleString("pt-BR")} avaliações)` : ""}
 ${product.is_lowest_price ? "Menor preço dos últimos 90 dias: SIM" : ""}
+${product.is_hardcover ? "Edição: Capa dura (inclua a linha \"📘 Capa dura\" na copy)" : ""}
 
 ${hasCoupon ? `Formato obrigatório:
 📦 {nome}
@@ -107,15 +108,13 @@ function getProductEmoji(category: string): string {
   const map: Record<string, string> = {
     manga: "📚",
     figure: "🗿",
-    box: "📦",
-    cosplay: "🎭",
-    outros: "✨",
+    livro: "📖",
   };
-  return map[category] ?? "✨";
+  return map[category] ?? "📚";
 }
 
 export function generateCopyTemplate(product: ScoredProduct): string {
-  const emoji = getProductEmoji(product.category ?? "outros");
+  const emoji = getProductEmoji(product.category ?? "");
   const name = product.name.length > 50 ? product.name.slice(0, 50) + "..." : product.name;
   const couponValue = (product as any).coupon_value as number | undefined;
   const couponType = (product as any).coupon_type as "fixed" | "percent" | undefined;

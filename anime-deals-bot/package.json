@@ -10,6 +10,7 @@
     "db:migrate": "tsx src/database/migrate.ts"
   },
   "dependencies": {
+    "@amzn/creatorsapi-nodejs-sdk": "file:sdk/creatorsapi-nodejs-sdk",
     "@anthropic-ai/sdk": "^0.39.0",
     "@libsql/client": "^0.14.0",
     "axios": "^1.7.0",

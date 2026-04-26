@@ -12,12 +12,14 @@ export const defaultConfig: FilterConfig = {
   maxPostsPerDay: Number(process.env.MAX_POSTS_PER_DAY ?? 10),
 };
 
+const ALLOWED_CATEGORIES = new Set(["manga", "figure", "livro"]);
+
 // Desconto mínimo por categoria
-function minDiscountForCategory(category?: string): number {
+function minDiscountForCategory(category: string): number {
   if (category === "manga") return 50;
-  if (category === "figure") return 50;
-  if (category === "livro") return 70;
-  return 50; // padrão para outros
+  if (category === "figure") return 40;
+  if (category === "livro") return 60;
+  return 9999;
 }
 
 export async function filterProducts(
@@ -30,26 +32,11 @@ export async function filterProducts(
   for (const product of products) {
     const pid = productId(product.source, product.source_id);
 
-    // Bloqueia digital/kindle independente de qualquer outro filtro
-    const nameLower = product.name.toLowerCase();
-    if (
-      nameLower.includes("kindle") ||
-      nameLower.includes("ebook") ||
-      nameLower.includes("e-book") ||
-      nameLower.includes("english edition") ||
-      nameLower.includes("livro digital") ||
-      nameLower.includes("edição digital") ||
-      nameLower.includes("versão digital") ||
-      nameLower.includes("audiolivro") ||
-      nameLower.includes("audio livro") ||
-      nameLower.includes("audiolibro") ||
-      nameLower.includes("versão integral") ||
-      nameLower.includes("versão completa")
-    ) {
-      logger.debug(`[Filter] Bloqueado (digital): "${product.name.slice(0, 60)}"`);
+    // Só manga, figure ou livro
+    if (!product.category || !ALLOWED_CATEGORIES.has(product.category)) {
+      logger.debug(`[Filter] ${product.name.slice(0, 40)} — categoria inválida (${product.category ?? "none"})`);
       continue;
     }
-
 
     // Anti-spam
     const alreadyPosted = await wasPostedRecently(pid, channelId, config.antiSpamDays);
@@ -58,16 +45,24 @@ export async function filterProducts(
       continue;
     }
 
-    // Menor preço histórico
-    const minPrice = await getMinPrice90Days(pid);
-    const isLowestPrice = minPrice !== null && product.current_price <= minPrice;
-
-    // Desconto mínimo por categoria
+    // Desconto efetivo (considera cupom se houver)
     const minDiscount = minDiscountForCategory(product.category);
-    if (product.discount_pct < minDiscount && !isLowestPrice) {
-      logger.debug(`[Filter] ${product.name.slice(0, 40)} — desconto insuficiente (${product.discount_pct}% < ${minDiscount}%)`);
+    const effectivePrice = product.final_price ?? product.current_price;
+    const effectiveDiscount = product.original_price && product.original_price > 0
+      ? Math.round((1 - effectivePrice / product.original_price) * 100)
+      : product.discount_pct;
+
+    if (effectiveDiscount < minDiscount) {
+      const couponInfo = product.coupon_value
+        ? ` (base ${product.discount_pct}% + cupom ${product.coupon_value}${product.coupon_type === "percent" ? "%" : " fixo"})`
+        : "";
+      logger.debug(`[Filter] ${product.name.slice(0, 40)} — desconto insuficiente (${effectiveDiscount}% < ${minDiscount}%)${couponInfo}`);
       continue;
     }
+
+    // Menor preço histórico (só informativo, usado pelo copy/scoring)
+    const minPrice = await getMinPrice90Days(pid);
+    const isLowestPrice = minPrice !== null && product.current_price < minPrice;
 
     results.push({ ...product, isLowestPrice });
   }

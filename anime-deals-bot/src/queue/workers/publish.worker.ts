@@ -1,13 +1,19 @@
 import { publishQueue, PublishJobData } from "../queues";
 import { publishToChannel } from "../../telegram/publisher";
-import { savePost, wasPostedRecently } from "../../database/queries";
+import { savePost, wasPostedRecently, countPostsToday } from "../../database/queries";
 import { logger } from "../../utils/logger";
 import { ScoredProduct } from "../../scoring/deal-scorer";
 
 async function processPublish(data: PublishJobData) {
   const { productId, channelId, copyText, affiliateUrl, product } = data;
 
-  // Verificação final anti-duplicata antes de postar
+  const maxPostsPerDay = Number(process.env.MAX_POSTS_PER_DAY ?? 10);
+  const todayCount = await countPostsToday(channelId);
+  if (todayCount >= maxPostsPerDay) {
+    logger.info(`[PublishWorker] Cap atingido (${todayCount}/${maxPostsPerDay}): "${product.name.slice(0, 40)}"`);
+    return;
+  }
+
   const antiSpamDays = Number(process.env.ANTI_SPAM_DAYS ?? 7);
   const alreadyPosted = await wasPostedRecently(productId, channelId, antiSpamDays);
   if (alreadyPosted) {
@@ -29,7 +35,6 @@ async function processPublish(data: PublishJobData) {
     score: product.score,
     score_label: product.score_label as "normal" | "boa" | "insana",
     is_lowest_price: false,
-    category: "outros",
   } satisfies ScoredProduct;
 
   const result = await publishToChannel(channelId, copyText, fakeProduct, affiliateUrl);

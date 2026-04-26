@@ -1,567 +1,232 @@
-import { RawProduct, isAnimeProduct, isBookProduct, detectCategory, BOOK_AUTHOR_KEYWORDS } from "./types";
+import { RawProduct, isAnimeProduct, isFunkoProduct, detectCategory, BOOK_AUTHOR_KEYWORDS, FUNKO_KEYWORDS, AMAZON_KEYWORDS } from "./types";
 import { logger } from "../utils/logger";
 
-const AMAZON_KEYWORDS = [
-  "Haikyu!!",
-  "Haikyu!",
-  "Naruto Gold",
-  "Naruto",
-  "Boruto",
-  "One Piece",
-  "Demon Slayer",
-  "Chainsaw Man",
-  "Spy x Family",
-  "Beastars",
-  "Atelier of Witch Hat",
-  "Soul Eater",
-  "Neon Genesis Evangelion",
-  "Fairy Tail",
-  "Bleach",
-  "Noragami",
-  "Tokyo Ghoul",
-  "Tokyo Ghoul: re",
-  "Ataque dos Titãs",
-  "Dr. Stone",
-  "Food Wars",
-  "The Promised Neverland",
-  "Fire Force",
-  "Moriarty: o Patriota",
-  "Seraph of the End",
-  "Akira",
-  "Battle Angel Alita",
-  "Death Note",
-  "Hunter X Hunter",
-  "Yu Yu Hakusho",
-  "20th Century Boys",
-  "Mob Psycho 100",
-  "Bungo Stray Dogs",
-  "Caçando Dragões",
-  "Golden Kamuy",
-  "Platinum End",
-  "Bakuman",
-  "Fullmetal Alchemist",
-  "Monster Kanzenban",
-  "Crimes Perfeitos",
-  "Slam Dunk",
-  "Vagabond",
-  "Nausicaä do Vale do Vento",
-  "My Hero Academia",
-  "Tokyo Revengers",
-  "Edens Zero",
-  "Shaman King",
-  "The Beginning After the End",
-  "Uma Vida Imortal",
-  "Made in Abyss",
-  "Frieren e a Jornada para o Além",
-  "Blue Period",
-  "Vinland Saga",
-  "Black Clover",
-  "Jujutsu Kaisen",
-  "Black Butler",
-  "Jojo's Bizarre Adventure",
-  "Dragon Ball",
-  "Blue Lock",
-  "Solo Leveling",
-  "Boa Noite Punpun",
-  "Blue Exorcist",
-  "Berserk",
-  "The Seven Deadly Sins",
-  "Gash Bell!!",
-  "Sakamoto Days",
-  "Hanako-kun e os Mistérios do Colégio Kamome",
-  "Sense Life",
-  "Pluto",
-  "Hellsing",
-  "Dandadan",
-  "Overlord",
-  "Fire Punch",
-  "Hajime no Ippo",
-  "Wind Breaker",
-  "Look Back",
-  "A Menina do Outro Lado",
-  "Pokémon",
-  "Sayonara Eri",
-  "Tower Dungeon",
-  "That Time I Got Reincarnated as a Slime",
-  "Gachiakuta",
-  "Dead Dead Demons Dededede Destruction",
-  "One-Punch Man",
-  "Record of Ragnarok",
-  "Asadora!",
-  "Ashita no Joe",
-  "Boys Run the Riot",
-  "Mangaká da Favela",
-  "Disney Twisted-Wonderland",
-  "Manga Theater",
-  "Dororo",
-  "Mushoku Tensei",
-  "Cavaleiros do Zodíaco",
-  "Katana Beast",
-  "Alice in Borderland",
-  "Nekogahara",
-  "The Ghost in the Shell",
-  "Uq Holder!",
-  "Dragon Quest",
-  "Yomi no Tsugai",
-  "Blue Box",
-  "O 11º Tripulante",
-  "Akane Banashi",
-  "Tenkaichi",
-  "Astro Boy",
-  "Parasyte",
-  "My Home Hero",
-  "Ao Ashi",
-  "I Sold My Life for Ten Thousand Yen Per Year",
-  "Não Chame de MISTÉRIO",
-  "Final Fantasy Lost Stranger",
-  "A Heroica Lenda de Arslan",
-  "Kamen Rider Kuuga",
-  "Show-ha Shoten!",
-  "Silver Spoon",
-  "Museum O Assassino Ri na Chuva",
-  "BECK Volume",
-  "Kagurabachi",
-  "Billy Bat",
-  "Rooster Fighter",
-  "Ruri Dragon",
-  "Baoh",
-  "Planetes Volume",
-  "Mao Vol.",
-  "Blade Vol.",
-  "Fênix Vol.",
-  "Mushishi",
-  "As Flores do Mal",
-  "Terra das Gemas",
-  "Re:Zero",
-  "Hellbound: Profecia do Inferno",
-  "Kaikisen: Retorno ao Mar",
-  "A Magia de um Retornado tem de ser Especial",
-  "Crônicas das Guerras de Lodoss",
-  "Suiiki: Território das Águas",
-  "Kimba: O Leão Branco",
-  "A Música de Marie",
-  "Zero no Tsukaima",
-  "Kamen Rider",
-  "The King of Fighters",
-  "Corpse Party: Another Child",
-  "Patrulha Estelar Yamato",
-  "O Horizonte Volume",
-  "GTO Volume",
-  "Rei de Lata Volume",
-  "Hetalia Axis Power",
-  "Devil Ecstasy",
-  "Divina Comédia Go Nagai",
-  "A Magia Continua",
-  "Sanctuary Vol.",
-  "Versus Vol.",
-  "Pesadelos Completos",
-  "Fragmentos do Horror",
-  "Shigahime",
-  "DeathDisco",
-  "A Feiticeira da Tempestade",
-  "Engolidos pela Terra",
-  "Contos de Horror da Mimi",
-  "Almanaque das Estações",
-  "Chushingura: O Tesouro dos 47 Ronins",
-  "Kogarashi Monjirou: O Prenúncio do Inverno",
-  "Mandala de Fogo",
-  "O Vampiro que Ri",
-  "A Princesa do Castelo Sem Fim",
-  "Mil Olhos de uma Terra em Fúria",
-  "Confins de um Sonho",
-  "Tomie Vol.",
-  "FIRE! Vol.",
-  "Shigurui: Frenesi da Morte",
-  "O Preço da Desonra: Kubidai Hikiukenin",
-  "O Novo Preço da Desonra",
-  "Vampiros Volume",
-  "Fóssil dos Sonhos",
-  "O Estranho Conto da Ilha Panorama",
-  "Hotel Harbour-View: Tokyo Killers",
-  "Dismorfos: Seleção de Contos Favoritos do Autor",
-  "A Valise do Professor",
-  "Mais Forte que a Espada",
-  "PTSD Radio: Frequências do Terror",
-  "O Diário do Meu Pai",
-  "MW: Psicopatia Profana",
-  "Borboleta Assassina",
-  "O Beco",
-  "Battle Royale Omnibus",
-  "As Egocêntricas Maldições de Souichi",
-  "O Encanamento que Geme",
-  "A Lanterna de Nix Vol.",
-  "A Lanterna de Nix Volume",
-  "Spectreman",
-  "Miyamoto Musashi Biografia em Mangá",
-  "Sensor Mangá",
-  "Hokusai Biografia em Mangá",
-  "O Último Voo das Borboletas",
-  "Rohan no Louvre",
-  "Zona Fantasma",
-  "Black Paradox",
-  "Vênus Invisível",
-  "Contos Esmagadores",
-  "Recado a Adolf",
-  "Guardiões do Louvre",
-  "A Sala de Aula que Derreteu",
-  "Um Bairro Distante",
-  "Mortos de Amor",
-  "Frankenstein e Outras Histórias de Horror",
-  "Solanin",
-  "Morada do Desertor",
-  "Cidade das Lápides",
-  "Satsuma Gishiden: Crônicas Dos Leais Guerreiros De Satsuma",
-  "A Lenda de Musashi",
-  "As Esculturas sem Cabeça",
-  "Omori Volume",
-  "O Ladrão de Mundos",
-  "Os Dias Comuns de Yano-Kun",
-  "Dig It Volume",
-  "Dicas de Férias de um Nobre Gentil",
-  "Gannibal: Vila de Canibais",
-  "A Cidade da Calmaria e a Terra das Cerejeiras",
-  "Uzumaki",
-  "Buracos da Estranheza",
-  "Gyo",
-  "Angustia Junji Ito",
-  "Olhares Junji Ito",
-  "Calafrios: Seleção de Contos Favoritos do Autor",
-  "Planeta Demoníaco Remina",
-  "Declínio de um Homem",
-  "Diario dos Gatos Yon & Mu",
-  "Ayako",
-  "O Homem que Passeia",
-  "Zoo no Inverno",
-  "O Gourmet Solitário",
-  "Dano Cerebral Volume",
-  "Metrópolis Osamu Tezuka",
-  "A Grande Invasão Mongol",
-  "Na Prisão Volume",
-  "Nas Montanhas do Terror",
-  "Yona A Princesa do Alvorecer",
-  "xxxHolic",
-  "Fall in Love, You False Angels",
-  "Sob a Luz da Lua",
-  "Sailor Moon",
-  "Inuyasha",
-  "Skip & Loafer",
-  "O Cão que Guarda as Estrelas",
-  "Sangatsu no Lion",
-  "Your Name",
-  "Cardcaptor Sakura Clear Card Arc",
-  "Rosa de Versalhes",
-  "Fruits Basket",
-  "Garota à Beira-Mar",
-  "The Fable Big",
-  "Flying Witch",
-  "Chi's Sweet Home",
-  "Card Captor Sakura",
-  "Nana",
-  "Anohana",
-  "Quero Comer Seu Pâncreas",
-  "Orange",
-  "Suzume",
-  "Minha História de Amor com Yamada-kun Nível 999",
-  "Foi olhando para você…",
-  "Honey Lemon Soda",
-  "Meu Casamento Feliz",
-  "O Homem de Gelo e sua Fria Colega de Trabalho",
-  "Kamisama Hajimemashita",
-  "Sono Bisque Doll",
-  "Tamon's b-side",
-  "Entre o Profissional e o Pessoal",
-  "Kaisha To Shiseikatsu",
-  "Como Conheci a Minha Alma Gêmea",
-  "Aoharaido",
-  "Strobe Edge",
-  "Furi Fura",
-  "Hirayasumi",
-  "Vou me Apaixonar por Você Mesmo Assim",
-  "O Verão em que Hikaru Morreu",
-  "Kusuriya no Hitorigoto",
-  "Diários de uma Apotecária",
-  "Oshi no Ko",
-  "Não Mexa Comigo, Nagotoro",
-  "Ao no Flag",
-  "Komi Não Consegue se Comunicar",
-  "Gokushufudou",
-  "Os Filhos da Família Shiunji",
-  "Namorada de Aluguel",
-  "As Quíntuplas",
-  "We Never Learn",
-  "Kaguya-sama Love is War",
-  "Kaiju N.° 8",
-  "Konosuba",
-  "Wild Strawberry",
-  "A Casa Estranha",
-  "Re Cervin",
-  "Marry Grave",
-  "Quem é Sakamoto?",
-  "Man of Rust",
-  "Tougen Anki",
-  "Bakuon Rettou",
-  "Wistoria: Wand & Sword",
-  "Shangri-la Frontier",
-  "Lili-men",
-  "Salaryman Z",
-  "Gokurakugai",
-  "Lycoris Recoil",
-  "A Noiva do Clã Kyogane",
-  "Missão: Família Yozakura",
-  "Mieruko-chan",
-  "Goblin Slayer",
-  "Sword Art Online",
-  "A Voz do Silêncio",
-  "My Little Monster",
-  "Toradora!",
-  "No Game No Life",
-  "Um Sinal de Afeto",
-  "Perfect World",
-  "Amor Imaturo",
-  "5 Centímetros por Segundo",
-  "Nodame Cantabile",
-  "Girl Crush",
-  "The Fragrant Flower Blooms With Dignity",
-  "As Crianças da Minha Vida",
-  "Ela e o seu Gato",
-  "Sem Sorte Para Amar",
-  "A Pessoa Amada",
-  "O Íntimo de Mari",
-  "O Jardim das Palavras",
-  "O Florescer do Amor",
-  "Fireworks: Luzes no Céu",
-  "Vampeerz",
-  "GAP: A Teoria Rosa",
-  "O Fim das Minhas Noites de Solidão",
-  "Como Conquistar um Alfa",
-  "Pink Heart Jam",
-  "Doukyusei",
-  "Sirius: Estrelas Gêmeas",
-  "Yarichin Bitch Club",
-  "Meus Dias na Vila das Gaivotas",
-  "Os Dias de Folga do Vilão",
-  "Bênção do Oficial Celestial",
-  "O Sistema de Autopreservação do Vilão Desprezível",
-  "Meu Final Feliz",
-  "Fuja Comigo, Garota!",
-  "Madoka Magica",
-  "O Monstro Solitário e a Garota Cega",
-  "Hello, Melancholic!",
-  "What Does the Fox Say?",
-  "Me Apaixonei pela Vilã",
-  "A Nossa Refeição",
-  "Bloom Into You",
-  "A Noite Além da Janela Triangular",
-  "The Dangerous Convenience Store",
-  "Citrus Volume",
-  "Minha Experiência Lésbica com a Solidão",
-  "Diário da Minha Experiência Comigo Mesma",
-  "Minha Existência de Guerreira Errante",
-  "Minha Fuga Alcoólica da Realidade",
-  "Quero te Amar Até o Fim",
-  "10 Coisas Para Fazer Antes dos 40",
-  "Sempre é Verão com Você",
-  "Se Quiser, é só Pedir",
-  "Shimanami Tasogare",
-  "Porque o Amor Existe!",
-  "O Sétimo Ano do Amor Puro",
-  "Professor Yukimura & Kei",
-  "A Canção de Yoru & Asa",
-  "Pássaros que Cantam Não Podem Voar",
-  "Ten Count",
-  "Você me Deixa sem Fôlego",
-  "Ouço os Raios de Luz",
-  "Seven Days Volume",
-  "Eu Não Preciso de um Coração",
-  "Dakaichi: o Homem Mais Desejado do Ano",
-  "10 Dance",
-  "Sanctify",
-  "Cherry Magic",
-  "Given",
-  "Será Que Esse Amor é Irresistível?",
-  "Amor na Ponta da Língua",
-  "One Room Angel",
-  "New York, New York",
-  "A Estratégia do Imperador",
-  "Nosso Segredo Volume",
-  "Sleeping Dead Volume",
-  "No.6",
-  "Mo Dao Zu Shi",
-  "Navillera Volume",
-  "Tocando a sua Noite",
-  "Boy Meets Maria",
-  "Meu Vizinho Metaleiro",
-  "Sasaki e Miyano",
-  "Skip and Loafer",
-  "Frieren",
+const { ApiClient, DefaultApi, SearchItemsRequestContent } = require("@amzn/creatorsapi-nodejs-sdk");
+
+const BLOCKED_BINDINGS = new Set([
+  "kindle",
+  "ebook kindle",
+  "kindle edition",
+  "audible audiobook",
+  "audiolivro",
+  "audio cd",
+  "mp3 cd",
+]);
+
+const BLOCKED_NAME_TOKENS = [
+  "kindle", "ebook", "e-book", "english edition",
+  "livro digital", "edição digital", "versão digital",
+  "audiolivro", "audio livro", "audiolibro",
+  "versão integral", "versão completa",
 ];
 
-async function collectViaScraping(tag: string, onBatch?: (products: RawProduct[]) => Promise<void>): Promise<RawProduct[]> {
-  let chromium: any;
-  try {
-    const pw = await import("playwright");
-    chromium = pw.chromium;
-  } catch {
-    logger.warn("[Amazon Scraping] Playwright não disponível. Pulando.");
-    return [];
+function isBlockedByApi(item: any): string | null {
+  const binding = item?.itemInfo?.classifications?.binding?.displayValue?.toLowerCase?.() ?? "";
+  if (binding && BLOCKED_BINDINGS.has(binding)) return `binding=${binding}`;
+
+  const productGroup = item?.itemInfo?.classifications?.productGroup?.displayValue?.toLowerCase?.() ?? "";
+  if (productGroup.includes("kindle") || productGroup.includes("audible")) return `productGroup=${productGroup}`;
+
+  const name = (item?.itemInfo?.title?.displayValue ?? "").toLowerCase();
+  const hit = BLOCKED_NAME_TOKENS.find(t => name.includes(t));
+  if (hit) return `name~="${hit}"`;
+
+  return null;
+}
+
+function isHardcover(item: any): boolean {
+  const binding = item?.itemInfo?.classifications?.binding?.displayValue?.toLowerCase?.() ?? "";
+  return binding === "capa dura" || binding === "hardcover";
+}
+
+function normalizeText(s: string): string {
+  return s.toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/[''`´"]/g, "")
+    .trim();
+}
+
+function matchesAuthor(item: any, authorKeyword: string): boolean {
+  const contributors: any[] = item?.itemInfo?.byLineInfo?.contributors ?? [];
+  if (!contributors.length) return false;
+
+  const normKeyword = normalizeText(authorKeyword);
+  const tokens = normKeyword.split(/[\s.]+/).filter(t => t.length >= 3);
+  if (!tokens.length) return true;
+
+  for (const c of contributors) {
+    const role = String(c?.role ?? c?.roleType ?? "").toLowerCase();
+    if (role && !role.includes("author") && !role.includes("autor")) continue;
+    const name = normalizeText(c?.name ?? "");
+    if (!name) continue;
+    if (tokens.every(t => name.includes(t))) return true;
+  }
+  return false;
+}
+
+function extractCoupon(listing: any, currentPrice: number): {
+  coupon_value?: number;
+  coupon_type?: "fixed" | "percent";
+  final_price?: number;
+} {
+  const promotions: any[] = listing?.promotions ?? [];
+  const coupon = promotions.find((p) => String(p?.type ?? "").toUpperCase() === "COUPON");
+  if (!coupon) return {};
+
+  const pct = coupon?.discount?.percentage;
+  const fixed = coupon?.discount?.money?.amount;
+
+  if (typeof pct === "number" && pct > 0) {
+    const finalPrice = Math.round(currentPrice * (1 - pct / 100) * 100) / 100;
+    return { coupon_value: pct, coupon_type: "percent", final_price: finalPrice };
+  }
+  if (typeof fixed === "number" && fixed > 0) {
+    const finalPrice = Math.max(0, Math.round((currentPrice - fixed) * 100) / 100);
+    return { coupon_value: fixed, coupon_type: "fixed", final_price: finalPrice };
+  }
+  return {};
+}
+
+function extractRawProduct(item: any, defaultCategory?: string): RawProduct | null {
+  const asin = item?.asin;
+  const listing = item?.offersV2?.listings?.[0];
+  const price = listing?.price?.money?.amount;
+  if (!asin || !price || price <= 0) return null;
+
+  const availability = listing?.availability?.type;
+  if (availability && availability !== "IN_STOCK") return null;
+
+  const blockReason = isBlockedByApi(item);
+  if (blockReason) {
+    logger.debug(`[Amazon API] Bloqueado (${blockReason}): ${asin}`);
+    return null;
   }
 
-  const USER_AGENTS = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Safari/605.1.15",
-    "Mozilla/5.0 (X11; Linux x86_64; rv:125.0) Gecko/20100101 Firefox/125.0",
+  const name = item?.itemInfo?.title?.displayValue ?? "";
+  const image = item?.images?.primary?.large?.url ?? item?.images?.primary?.medium?.url ?? "";
+  const productUrl = item?.detailPageURL ?? `https://www.amazon.com.br/dp/${asin}`;
+  const originalPrice = listing?.price?.savingBasis?.money?.amount;
+  const discountPct = listing?.price?.savings?.percentage ?? 0;
+  const coupon = extractCoupon(listing, price);
+
+  return {
+    source: "amazon",
+    source_id: asin,
+    name,
+    current_price: price,
+    original_price: originalPrice,
+    discount_pct: discountPct,
+    rating: 0,
+    reviews: 0,
+    image_url: image,
+    product_url: productUrl,
+    category: defaultCategory ?? detectCategory(name),
+    is_hardcover: isHardcover(item),
+    ...coupon,
+  };
+}
+
+async function searchKeyword(
+  api: any,
+  partnerTag: string,
+  keyword: string,
+  searchIndex: string = "Books"
+): Promise<any[]> {
+  const req = new SearchItemsRequestContent();
+  req.partnerTag = partnerTag;
+  req.keywords = keyword;
+  req.searchIndex = searchIndex;
+  req.itemCount = 10;
+  req.resources = [
+    "images.primary.large",
+    "itemInfo.title",
+    "itemInfo.byLineInfo",
+    "itemInfo.classifications",
+    "offersV2.listings.price",
+    "offersV2.listings.availability",
   ];
 
+  try {
+    const res = await api.searchItems("www.amazon.com.br", { searchItemsRequestContent: req });
+    return res?.searchResult?.items ?? [];
+  } catch (err: any) {
+    const status = err?.status ?? err?.response?.statusCode;
+    const body = err?.response?.body ?? err?.body ?? err?.response?.data;
+    const apiMsg =
+      body?.errors?.[0]?.message ??
+      body?.Errors?.[0]?.Message ??
+      (typeof body === "string" ? body : JSON.stringify(body ?? {}).slice(0, 200));
+    const msg = err?.message ?? String(err);
+    logger.warn(`[Amazon API] "${keyword}" → erro ${status ?? ""}: ${apiMsg || msg.slice(0, 120)}`);
+    return [];
+  }
+}
+
+async function collectViaCreatorsAPI(
+  tag: string,
+  onBatch?: (products: RawProduct[]) => Promise<void>
+): Promise<RawProduct[]> {
+  const apiClient = new ApiClient();
+  apiClient.credentialId = process.env.AMAZON_CLIENT_ID;
+  apiClient.credentialSecret = process.env.AMAZON_CLIENT_SECRET;
+  apiClient.version = process.env.AMAZON_API_VERSION || "3.1";
+
+  const api = new DefaultApi(apiClient);
   const products: RawProduct[] = [];
 
-  let browser: any;
-  try {
-    browser = await chromium.launch({ headless: true });
-  } catch (err) {
-    logger.warn("[Amazon Scraping] Browser não instalado. Rode: npx playwright install chromium");
-    return [];
-  }
-
   const searchConfigs = [
-    { keywords: AMAZON_KEYWORDS, filter: isAnimeProduct, defaultCategory: undefined as string | undefined },
-    { keywords: BOOK_AUTHOR_KEYWORDS, filter: isBookProduct, defaultCategory: "livro" as string | undefined },
+    { keywords: AMAZON_KEYWORDS, filter: isAnimeProduct as ((name: string) => boolean) | null, defaultCategory: undefined as string | undefined, validateAuthor: false, searchIndex: "Books" },
+    { keywords: FUNKO_KEYWORDS, filter: isFunkoProduct as ((name: string) => boolean) | null, defaultCategory: "figure" as string | undefined, validateAuthor: false, searchIndex: "All" },
+    { keywords: BOOK_AUTHOR_KEYWORDS, filter: null, defaultCategory: "livro" as string | undefined, validateAuthor: true, searchIndex: "Books" },
   ];
 
-  for (const { keywords, filter, defaultCategory } of searchConfigs) {
-  for (const query of keywords) {
-    const context = await browser.newContext({
-      userAgent: USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)],
-      locale: "pt-BR",
-      viewport: { width: 1280, height: 800 },
-    });
+  for (const { keywords, filter, defaultCategory, validateAuthor, searchIndex } of searchConfigs) {
+    for (const query of keywords) {
+      const items = await searchKeyword(api, tag, query, searchIndex);
 
-    try {
-      const page = await context.newPage();
-      const url = `https://www.amazon.com.br/s?k=${encodeURIComponent(query)}&i=stripbooks&s=price-asc-rank`;
-      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 });
-      await page.waitForTimeout(2000 + Math.random() * 2000);
-
-      const items = await page.$$eval('[data-component-type="s-search-result"]', (els: any[]) =>
-        els.slice(0, 10).map((el: any) => {
-          const name = el.querySelector("h2 span")?.textContent?.trim() ?? "";
-
-          // Bloqueia Kindle/ebook pelo texto do card
-          const fullText = el.textContent?.toLowerCase() ?? "";
-          const subtitleText = (
-            el.querySelector(".a-size-medium.a-color-secondary") ??
-            el.querySelector(".a-size-base.a-color-secondary") ??
-            el.querySelector(".a-size-mini.a-color-secondary") ??
-            el.querySelector("[class*='subtitle']")
-          )?.textContent?.toLowerCase() ?? "";
-
-          if (
-            fullText.includes("kindle") ||
-            subtitleText.includes("kindle") ||
-            name.toLowerCase().includes("kindle") ||
-            name.toLowerCase().includes("english edition") ||
-            name.toLowerCase().includes("audiolivro") ||
-            name.toLowerCase().includes("versão integral") ||
-            subtitleText.includes("audiolivro") ||
-            subtitleText.includes("versão integral")
-          ) return null;
-
-          const isHardcover = subtitleText.includes("capa dura");
-          const priceWhole = el.querySelector(".a-price-whole")?.textContent?.replace(/[.,]/g, "").trim() ?? "0";
-          const priceFrac = el.querySelector(".a-price-fraction")?.textContent?.trim() ?? "00";
-          const currentPrice = parseFloat(`${priceWhole}.${priceFrac}`);
-
-          const originalPriceText = el.querySelector(".a-text-price .a-offscreen")?.textContent
-            ?.replace("R$", "").replace(/[.,]/g, "").trim() ?? "0";
-          const originalPrice = parseFloat(originalPriceText) / 100 || undefined;
-
-          const ratingText = el.querySelector(".a-icon-alt")?.textContent?.split(" ")?.[0] ?? "0";
-          const rating = parseFloat(ratingText.replace(",", ".")) || 0;
-
-          const reviewsText = el.querySelector('[aria-label*="stars"] ~ span, .a-size-small .a-color-secondary')?.textContent?.replace(/\D/g, "") ?? "0";
-          const reviews = parseInt(reviewsText, 10) || 0;
-
-          const asin = el.getAttribute("data-asin") ?? "";
-          const image = (el.querySelector(".s-image") as any)?.src ?? "";
-          const productUrl = `https://www.amazon.com.br/dp/${asin}`;
-
-          const couponText = el.querySelector(".s-coupon-unclipped, [id*='coupon'], .a-color-success")?.textContent?.trim() ?? "";
-          let couponValue: number | undefined;
-          let couponType: "fixed" | "percent" | undefined;
-          if (couponText) {
-            const fixedMatch = couponText.match(/R\$\s*([\d]+(?:[,.]\d{1,2})?)/i);
-            const pctMatch = couponText.match(/(\d+)\s*%/i);
-            if (fixedMatch) {
-              couponValue = parseFloat(fixedMatch[1].replace(",", "."));
-              couponType = "fixed";
-            } else if (pctMatch) {
-              couponValue = parseInt(pctMatch[1], 10);
-              couponType = "percent";
-            }
-          }
-
-          return { name, currentPrice, originalPrice, rating, reviews, asin, image, productUrl, couponValue, couponType, isHardcover };
-        })
-      );
-
+      const batch: RawProduct[] = [];
       for (const item of items) {
-        if (!item || !item.asin || !filter(item.name)) continue;
-        const discountPct = item.originalPrice
-          ? Math.round(((item.originalPrice - item.currentPrice) / item.originalPrice) * 100)
-          : 0;
-
-        let finalPrice: number | undefined;
-        if (item.couponValue && item.couponType) {
-          finalPrice = item.couponType === "fixed"
-            ? Math.round((item.currentPrice - item.couponValue) * 100) / 100
-            : Math.round((item.currentPrice * (1 - item.couponValue / 100)) * 100) / 100;
+        if (validateAuthor && !matchesAuthor(item, query)) {
+          logger.debug(`[Amazon API] Autor não bate ("${query}"): ${item?.asin}`);
+          continue;
         }
+        const product = extractRawProduct(item, defaultCategory);
+        if (!product) continue;
+        if (filter && !filter(product.name)) continue;
+        batch.push(product);
+      }
 
-        const product: RawProduct = {
-          source: "amazon",
-          source_id: item.asin,
-          name: item.name,
-          current_price: item.currentPrice,
-          original_price: item.originalPrice,
-          discount_pct: discountPct,
-          rating: item.rating,
-          reviews: item.reviews,
-          image_url: item.image,
-          product_url: `${item.productUrl}?tag=${tag}`,
-          category: defaultCategory ?? detectCategory(item.name),
-          coupon_value: item.couponValue,
-          coupon_type: item.couponType,
-          final_price: finalPrice,
-          is_hardcover: item.isHardcover,
-        };
-
+      if (batch.length) {
+        logger.info(`[Amazon API] "${query}": ${batch.length} produtos válidos`);
         if (onBatch) {
-          await onBatch([product]);
+          await onBatch(batch);
         } else {
-          products.push(product);
+          products.push(...batch);
         }
       }
-    } catch (err) {
-      logger.error(`[Amazon Scraping] Erro na busca "${query}":`, err);
-    } finally {
-      await context.close();
+
+      await sleep(1100);
     }
-
-    await sleep(3000 + Math.random() * 3000);
   }
-  } // fim searchConfigs loop
 
-  await browser.close();
   return products;
 }
 
 export async function collectFromAmazon(onBatch?: (products: RawProduct[]) => Promise<void>): Promise<RawProduct[]> {
-  const tag =
-    process.env.AMAZON_AFFILIATE_TAG ??
-    process.env.AMAZON_PARTNER_TAG ??
-    "";
+  const tag = process.env.AMAZON_AFFILIATE_TAG ?? process.env.AMAZON_PARTNER_TAG ?? "";
 
-  logger.info("[Amazon] Usando scraping direto.");
-  return collectViaScraping(tag, onBatch);
+  if (!process.env.AMAZON_CLIENT_ID || !process.env.AMAZON_CLIENT_SECRET) {
+    logger.warn("[Amazon] AMAZON_CLIENT_ID/SECRET ausentes. Pulando coleta Amazon.");
+    return [];
+  }
+  if (!tag) {
+    logger.warn("[Amazon] AMAZON_AFFILIATE_TAG ausente. Pulando coleta Amazon.");
+    return [];
+  }
+
+  logger.info("[Amazon] Usando Creators API (oficial).");
+  return collectViaCreatorsAPI(tag, onBatch);
 }
 
 function sleep(ms: number) {

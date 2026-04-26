@@ -49,22 +49,50 @@ export function addMLAffiliateId(url: string, affiliateId?: string): string {
 
 const shortUrlCache = new Map<string, string>();
 
+const AMAZON_SHORT_DOMAINS = /^https?:\/\/(amzn\.to|a\.co)\//i;
+
+const SHORTEN_TIMEOUT_MS = 10000;
+const SHORTEN_MIN_GAP_MS = 600;
+const SHORTEN_MAX_ATTEMPTS = 2;
+const SHORTEN_RETRY_DELAY_MS = 1500;
+
+let lastShortenAt = 0;
+
+async function throttleShorten(): Promise<void> {
+  const elapsed = Date.now() - lastShortenAt;
+  if (elapsed < SHORTEN_MIN_GAP_MS) {
+    await new Promise((r) => setTimeout(r, SHORTEN_MIN_GAP_MS - elapsed));
+  }
+  lastShortenAt = Date.now();
+}
+
 export async function shortenUrl(url: string): Promise<string> {
+  if (AMAZON_SHORT_DOMAINS.test(url)) return url;
   if (shortUrlCache.has(url)) return shortUrlCache.get(url)!;
 
-  try {
-    const res = await axios.get("https://is.gd/create.php", {
-      params: { format: "json", url },
-      timeout: 5000,
-    });
-
-    const short = res.data.shorturl as string;
-    shortUrlCache.set(url, short);
-    return short;
-  } catch (err) {
-    logger.warn("[LinkManager] Erro ao encurtar URL, usando original:", err);
-    return url;
+  for (let attempt = 1; attempt <= SHORTEN_MAX_ATTEMPTS; attempt++) {
+    await throttleShorten();
+    try {
+      const res = await axios.get("https://is.gd/create.php", {
+        params: { format: "json", url },
+        timeout: SHORTEN_TIMEOUT_MS,
+      });
+      const short = res.data.shorturl as string;
+      if (short) {
+        shortUrlCache.set(url, short);
+        return short;
+      }
+    } catch (err: any) {
+      const reason = err?.code ?? err?.message ?? String(err);
+      if (attempt < SHORTEN_MAX_ATTEMPTS) {
+        logger.debug(`[LinkManager] is.gd falhou (${reason}), tentativa ${attempt}/${SHORTEN_MAX_ATTEMPTS}`);
+        await new Promise((r) => setTimeout(r, SHORTEN_RETRY_DELAY_MS));
+        continue;
+      }
+      logger.warn(`[LinkManager] is.gd falhou após ${SHORTEN_MAX_ATTEMPTS} tentativas (${reason}), usando URL original`);
+    }
   }
+  return url;
 }
 
 // =====================================================================
